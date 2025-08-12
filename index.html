@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instagram Post Generator - INTI</title>
+    <title>Instagram Post Generator - INTI Enhanced</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -54,6 +54,12 @@
 
         .form-group {
             margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
         }
 
         label {
@@ -116,6 +122,68 @@
         .template-option:hover {
             background: rgba(212, 175, 55, 0.1);
             border-color: #D4AF37;
+        }
+
+        .font-style-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .style-btn {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(212, 175, 55, 0.3);
+            border-radius: 6px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .style-btn.active {
+            background: rgba(212, 175, 55, 0.2);
+            border-color: #D4AF37;
+            color: #D4AF37;
+        }
+
+        .style-btn:hover {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: #D4AF37;
+        }
+
+        .size-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .size-control input[type="range"] {
+            flex: 1;
+            height: 6px;
+            background: rgba(212, 175, 55, 0.3);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .size-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #D4AF37;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .size-value {
+            color: #D4AF37;
+            font-weight: 600;
+            min-width: 40px;
+            font-size: 14px;
         }
 
         .color-palette-selector {
@@ -190,11 +258,7 @@
             border-radius: 15px;
             overflow: hidden;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            cursor: grab;
-        }
-
-        .post-canvas:active {
-            cursor: grabbing;
+            transform-origin: center;
         }
 
         .post-content {
@@ -206,6 +270,7 @@
             padding: 30px;
             position: relative;
             overflow: hidden;
+            font-family: 'Merriweather', serif;
         }
 
         .post-content.template-cover {
@@ -229,8 +294,6 @@
         }
 
         .post-title {
-            font-size: 22px;
-            font-weight: 700;
             color: #fff;
             text-align: center;
             margin-bottom: 15px;
@@ -241,15 +304,12 @@
         }
 
         .post-content.template-cover .post-title {
-            font-size: 28px;
-            font-weight: 700;
             margin-bottom: 20px;
             line-height: 1.3;
         }
 
         .post-body {
             flex: 1;
-            font-size: 14px;
             color: #f5f5f5;
             line-height: 1.6;
             text-align: justify;
@@ -262,7 +322,6 @@
 
         .post-content.template-cover .post-body {
             flex: none;
-            font-size: 16px;
             text-align: center;
             line-height: 1.8;
             max-width: 90%;
@@ -334,36 +393,6 @@
             margin-top: 20px;
         }
 
-        .line-height-group {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .line-height-group input[type="range"] {
-            flex: 1;
-            height: 6px;
-            background: rgba(212, 175, 55, 0.3);
-            border-radius: 3px;
-            outline: none;
-            -webkit-appearance: none;
-        }
-
-        .line-height-group input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 18px;
-            height: 18px;
-            background: #D4AF37;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-
-        .line-height-value {
-            color: #D4AF37;
-            font-weight: 600;
-            min-width: 40px;
-        }
-
         @media (max-width: 768px) {
             .container {
                 grid-template-columns: 1fr;
@@ -383,6 +412,14 @@
 
             .template-selector {
                 grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .font-style-controls {
+                grid-template-columns: repeat(3, 1fr);
             }
         }
 
@@ -426,6 +463,11 @@
                 radial-gradient(circle at 20% 80%, rgba(73, 80, 87, 0.05) 0%, transparent 50%),
                 radial-gradient(circle at 80% 20%, rgba(0, 0, 0, 0.02) 0%, transparent 50%);
         }
+
+        /* Font styling classes */
+        .bold { font-weight: bold !important; }
+        .italic { font-style: italic !important; }
+        .underline { text-decoration: underline !important; }
     </style>
 </head>
 <body>
@@ -449,11 +491,55 @@
             <div class="form-group">
                 <label for="title">Judul Post</label>
                 <input type="text" id="title" placeholder="Masukkan judul konten Anda...">
+                
+                <!-- Title Font Styling -->
+                <div class="font-style-controls" id="titleStyles">
+                    <div class="style-btn" data-style="bold" data-target="title">
+                        <strong>B</strong>
+                    </div>
+                    <div class="style-btn" data-style="italic" data-target="title">
+                        <em>I</em>
+                    </div>
+                    <div class="style-btn" data-style="underline" data-target="title">
+                        <u>U</u>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Title Font Size -->
+            <div class="form-group">
+                <label>Ukuran Font Judul</label>
+                <div class="size-control">
+                    <input type="range" id="titleFontSize" min="16" max="128" value="22" step="1">
+                    <span class="size-value" id="titleFontSizeValue">22px</span>
+                </div>
             </div>
 
             <div class="form-group">
                 <label for="content">Konten</label>
                 <textarea id="content" placeholder="Tulis konten Anda di sini..."></textarea>
+                
+                <!-- Content Font Styling -->
+                <div class="font-style-controls" id="contentStyles">
+                    <div class="style-btn" data-style="bold" data-target="content">
+                        <strong>B</strong>
+                    </div>
+                    <div class="style-btn" data-style="italic" data-target="content">
+                        <em>I</em>
+                    </div>
+                    <div class="style-btn" data-style="underline" data-target="content">
+                        <u>U</u>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Font Size -->
+            <div class="form-group">
+                <label>Ukuran Font Konten</label>
+                <div class="size-control">
+                    <input type="range" id="contentFontSize" min="10" max="64" value="14" step="1">
+                    <span class="size-value" id="contentFontSizeValue">14px</span>
+                </div>
             </div>
 
             <div class="form-group">
@@ -461,24 +547,26 @@
                 <input type="text" id="footer" placeholder="Footer tambahan...">
             </div>
 
-            <!-- Font Selector -->
-            <div class="form-group">
-                <label for="fontFamily">Font Family</label>
-                <select id="fontFamily">
-                    <option value="Merriweather">Merriweather (Serif)</option>
-                    <option value="Inter">Inter (Sans-serif)</option>
-                    <option value="Playfair Display">Playfair Display (Elegant)</option>
-                    <option value="Roboto">Roboto (Clean)</option>
-                    <option value="Open Sans">Open Sans (Modern)</option>
-                </select>
-            </div>
+            <div class="form-row">
+                <!-- Font Selector -->
+                <div class="form-group">
+                    <label for="fontFamily">Font Family</label>
+                    <select id="fontFamily">
+                        <option value="Merriweather">Merriweather (Serif)</option>
+                        <option value="Inter">Inter (Sans-serif)</option>
+                        <option value="Playfair Display">Playfair Display (Elegant)</option>
+                        <option value="Roboto">Roboto (Clean)</option>
+                        <option value="Open Sans">Open Sans (Modern)</option>
+                    </select>
+                </div>
 
-            <!-- Line Height Control -->
-            <div class="form-group">
-                <label>Line Spacing</label>
-                <div class="line-height-group">
-                    <input type="range" id="lineHeight" min="1.2" max="2.5" step="0.1" value="1.6">
-                    <span class="line-height-value" id="lineHeightValue">1.6</span>
+                <!-- Line Height Control -->
+                <div class="form-group">
+                    <label>Line Spacing</label>
+                    <div class="size-control">
+                        <input type="range" id="lineHeight" min="1.2" max="2.5" step="0.1" value="1.6">
+                        <span class="size-value" id="lineHeightValue">1.6</span>
+                    </div>
                 </div>
             </div>
 
@@ -514,12 +602,11 @@
                     <option value="instagram">Instagram Square (1080x1080)</option>
                     <option value="story">Instagram Story (1080x1920)</option>
                     <option value="facebook">Facebook Post (1200x630)</option>
-                    <option value="custom">Custom Size</option>
                 </select>
             </div>
 
             <div class="controls">
-                <button class="btn btn-primary" onclick="downloadImage()">Download Gambar</button>
+                <button class="btn btn-primary" onclick="downloadImage()">Download Gambar HD</button>
                 <button class="btn btn-secondary" onclick="resetForm()">Reset Form</button>
             </div>
         </div>
@@ -542,6 +629,10 @@
         let currentTemplate = 'content';
         let currentPalette = 'dark';
         let currentLineHeight = 1.6;
+        let titleStyles = { bold: false, italic: false, underline: false };
+        let contentStyles = { bold: false, italic: false, underline: false };
+        let titleFontSize = 22;
+        let contentFontSize = 14;
 
         // Template type selector
         document.querySelectorAll('.template-option').forEach(option => {
@@ -550,7 +641,39 @@
                 this.classList.add('active');
                 currentTemplate = this.dataset.template;
                 updateTemplate();
+                updateCanvasScale();
             });
+        });
+
+        // Font style controls
+        document.querySelectorAll('.style-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const style = this.dataset.style;
+                const target = this.dataset.target;
+                
+                this.classList.toggle('active');
+                
+                if (target === 'title') {
+                    titleStyles[style] = !titleStyles[style];
+                    applyFontStyles('previewTitle', titleStyles);
+                } else {
+                    contentStyles[style] = !contentStyles[style];
+                    applyFontStyles('previewContent', contentStyles);
+                }
+            });
+        });
+
+        // Font size controls
+        document.getElementById('titleFontSize').addEventListener('input', function() {
+            titleFontSize = parseInt(this.value);
+            document.getElementById('titleFontSizeValue').textContent = titleFontSize + 'px';
+            document.getElementById('previewTitle').style.fontSize = titleFontSize + 'px';
+        });
+
+        document.getElementById('contentFontSize').addEventListener('input', function() {
+            contentFontSize = parseInt(this.value);
+            document.getElementById('contentFontSizeValue').textContent = contentFontSize + 'px';
+            document.getElementById('previewContent').style.fontSize = contentFontSize + 'px';
         });
 
         // Color palette selector
@@ -561,7 +684,6 @@
                 currentPalette = this.dataset.palette;
                 updateColorPalette();
                 
-                // Show/hide custom color inputs
                 const customInputs = document.getElementById('customColorInputs');
                 if (currentPalette === 'custom') {
                     customInputs.classList.add('show');
@@ -571,7 +693,6 @@
             });
         });
 
-        // Custom color inputs
         document.getElementById('bgColor1').addEventListener('change', updateColorPalette);
         document.getElementById('bgColor2').addEventListener('change', updateColorPalette);
 
@@ -588,6 +709,18 @@
             document.getElementById('previewContent').style.lineHeight = currentLineHeight;
         });
 
+        // Size selector
+        document.getElementById('size').addEventListener('change', updateCanvasScale);
+
+        function applyFontStyles(elementId, styles) {
+            const element = document.getElementById(elementId);
+            element.classList.remove('bold', 'italic', 'underline');
+            
+            if (styles.bold) element.classList.add('bold');
+            if (styles.italic) element.classList.add('italic');
+            if (styles.underline) element.classList.add('underline');
+        }
+
         function updateTemplate() {
             const postContent = document.getElementById('postContent');
             if (currentTemplate === 'cover') {
@@ -597,10 +730,29 @@
             }
         }
 
+        function updateCanvasScale() {
+            const canvas = document.getElementById('postCanvas');
+            const size = document.getElementById('size').value;
+            
+            switch(size) {
+                case 'instagram':
+                    canvas.style.width = '400px';
+                    canvas.style.height = '400px';
+                    break;
+                case 'story':
+                    canvas.style.width = '225px';
+                    canvas.style.height = '400px';
+                    break;
+                case 'facebook':
+                    canvas.style.width = '400px';
+                    canvas.style.height = '210px';
+                    break;
+            }
+        }
+
         function updateColorPalette() {
             const postContent = document.getElementById('postContent');
             
-            // Remove existing palette classes
             postContent.classList.remove('palette-light-mode');
             
             if (currentPalette === 'light') {
@@ -636,28 +788,6 @@
             }
         });
 
-        document.getElementById('size').addEventListener('change', function() {
-            const canvas = document.getElementById('postCanvas');
-            const size = this.value;
-            
-            switch(size) {
-                case 'instagram':
-                    canvas.style.width = '400px';
-                    canvas.style.height = '400px';
-                    break;
-                case 'story':
-                    canvas.style.width = '225px';
-                    canvas.style.height = '400px';
-                    break;
-                case 'facebook':
-                    canvas.style.width = '400px';
-                    canvas.style.height = '210px';
-                    break;
-                case 'custom':
-                    break;
-            }
-        });
-
         function showToast(message) {
             const toast = document.getElementById('toast');
             toast.textContent = message;
@@ -670,29 +800,33 @@
         function downloadImage() {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            const postContent = document.getElementById('postContent');
             const size = document.getElementById('size').value;
             
-            // Set canvas dimensions based on selected size
-            let width, height;
+            // Set high-resolution canvas dimensions
+            let width, height, scaleFactor = 2; // 2x for HD quality
             switch(size) {
                 case 'instagram':
-                    width = height = 1080;
+                    width = height = 1080 * scaleFactor;
                     break;
                 case 'story':
-                    width = 1080;
-                    height = 1920;
+                    width = 1080 * scaleFactor;
+                    height = 1920 * scaleFactor;
                     break;
                 case 'facebook':
-                    width = 1200;
-                    height = 630;
+                    width = 1200 * scaleFactor;
+                    height = 630 * scaleFactor;
                     break;
                 default:
-                    width = height = 1080;
+                    width = height = 1080 * scaleFactor;
             }
             
             canvas.width = width;
             canvas.height = height;
+            
+            // Enable high-quality rendering
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.textRenderingOptimization = 'optimizeQuality';
             
             // Create background based on current palette
             let bgColor1, bgColor2, textColor, watermarkColor;
@@ -725,12 +859,28 @@
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, width, height);
             
-            // Calculate responsive sizes
-            const padding = Math.max(width * 0.08, 50);
-            const titleFontSize = currentTemplate === 'cover' ? Math.max(width * 0.055, 28) : Math.max(width * 0.048, 22);
-            const contentFontSize = currentTemplate === 'cover' ? Math.max(width * 0.03, 16) : Math.max(width * 0.026, 14);
-            const footerFontSize = Math.max(width * 0.022, 11);
-            const watermarkFontSize = Math.max(width * 0.018, 10);
+            // Add background patterns for better visual appeal
+            if (currentPalette !== 'light') {
+                // Radial gradients for depth
+                const radial1 = ctx.createRadialGradient(width * 0.2, height * 0.8, 0, width * 0.2, height * 0.8, width * 0.5);
+                radial1.addColorStop(0, 'rgba(212, 175, 55, 0.1)');
+                radial1.addColorStop(1, 'transparent');
+                ctx.fillStyle = radial1;
+                ctx.fillRect(0, 0, width, height);
+                
+                const radial2 = ctx.createRadialGradient(width * 0.8, height * 0.2, 0, width * 0.8, height * 0.2, width * 0.5);
+                radial2.addColorStop(0, 'rgba(255, 255, 255, 0.05)');
+                radial2.addColorStop(1, 'transparent');
+                ctx.fillStyle = radial2;
+                ctx.fillRect(0, 0, width, height);
+            }
+            
+            // Calculate responsive sizes with scaling factor
+            const basePadding = Math.max(width * 0.08, 50 * scaleFactor);
+            const baseTitleSize = currentTemplate === 'cover' ? titleFontSize * scaleFactor * 1.2 : titleFontSize * scaleFactor;
+            const baseContentSize = contentFontSize * scaleFactor;
+            const baseFooterSize = Math.max(width * 0.022, 11 * scaleFactor);
+            const baseWatermarkSize = 40 * scaleFactor;
             
             // Get text content and font family
             const title = document.getElementById('title').value || 'Judul Anda Akan Muncul Di Sini';
@@ -738,41 +888,55 @@
             const footer = document.getElementById('footer').value;
             const fontFamily = document.getElementById('fontFamily').value;
             
+            // Function to apply font styles
+            function getFontString(baseSize, styles, family) {
+                let fontStr = '';
+                if (styles.italic) fontStr += 'italic ';
+                if (styles.bold) fontStr += 'bold ';
+                fontStr += `${baseSize}px '${family}', serif`;
+                return fontStr;
+            }
+            
             // Set up font and styles for title
-            ctx.font = `bold ${titleFontSize}px '${fontFamily}', serif`;
+            ctx.font = getFontString(baseTitleSize, titleStyles, fontFamily);
             ctx.fillStyle = textColor;
             ctx.textAlign = 'center';
             
             // Add shadow for non-light modes
             if (currentPalette !== 'light') {
                 ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-                ctx.shadowBlur = 4;
-                ctx.shadowOffsetX = 2;
-                ctx.shadowOffsetY = 2;
+                ctx.shadowBlur = 4 * scaleFactor;
+                ctx.shadowOffsetX = 2 * scaleFactor;
+                ctx.shadowOffsetY = 2 * scaleFactor;
             }
             
             // Calculate title positioning and wrapping
-            const maxTitleWidth = width - (padding * 2);
+            const maxTitleWidth = width - (basePadding * 2);
             const titleLines = smartWrapText(ctx, title, maxTitleWidth);
             
             let currentY;
-            const titleLineHeight = titleFontSize * (currentTemplate === 'cover' ? 1.3 : 1.2);
+            const titleLineHeight = baseTitleSize * (currentTemplate === 'cover' ? 1.3 : 1.2);
             const titleTotalHeight = titleLines.length * titleLineHeight;
             
             if (currentTemplate === 'cover') {
                 // Calculate total content height for centering
                 const contentLines = content.split('\n');
-                const estimatedContentHeight = contentLines.length * contentFontSize * currentLineHeight;
-                const footerHeight = footer ? footerFontSize * 1.5 : 0;
-                const totalContentHeight = titleTotalHeight + estimatedContentHeight + footerHeight + (padding * 0.5);
+                const estimatedContentHeight = contentLines.length * baseContentSize * currentLineHeight;
+                const footerHeight = footer ? baseFooterSize * 1.5 : 0;
+                const totalContentHeight = titleTotalHeight + estimatedContentHeight + footerHeight + (basePadding * 0.5);
                 
-                currentY = Math.max((height - totalContentHeight) / 2 + titleFontSize, padding + titleFontSize);
+                currentY = Math.max((height - totalContentHeight) / 2 + baseTitleSize, basePadding + baseTitleSize);
             } else {
-                currentY = padding + titleFontSize;
+                currentY = basePadding + baseTitleSize;
             }
             
             // Draw title lines
             titleLines.forEach((line, index) => {
+                if (titleStyles.underline) {
+                    const lineWidth = ctx.measureText(line).width;
+                    const lineY = currentY + baseTitleSize * 0.1;
+                    ctx.fillRect((width - lineWidth) / 2, lineY, lineWidth, 2 * scaleFactor);
+                }
                 ctx.fillText(line, width / 2, currentY);
                 currentY += titleLineHeight;
             });
@@ -783,20 +947,20 @@
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
             
-            ctx.font = `${contentFontSize}px '${fontFamily}', serif`;
+            ctx.font = getFontString(baseContentSize, contentStyles, fontFamily);
             ctx.fillStyle = currentPalette === 'light' ? '#495057' : '#f5f5f5';
             
             if (currentPalette !== 'light') {
                 ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-                ctx.shadowBlur = 1;
-                ctx.shadowOffsetX = 1;
-                ctx.shadowOffsetY = 1;
+                ctx.shadowBlur = 1 * scaleFactor;
+                ctx.shadowOffsetX = 1 * scaleFactor;
+                ctx.shadowOffsetY = 1 * scaleFactor;
             }
             
             // Content positioning
-            const contentStartY = currentY + (padding * (currentTemplate === 'cover' ? 0.4 : 0.3));
-            const maxContentWidth = width - (padding * 2);
-            const maxContentHeight = height - contentStartY - padding - (footer ? footerFontSize * 2.5 : 0) - watermarkFontSize * 3;
+            const contentStartY = currentY + (basePadding * (currentTemplate === 'cover' ? 0.4 : 0.3));
+            const maxContentWidth = width - (basePadding * 2);
+            const maxContentHeight = height - contentStartY - basePadding - (footer ? baseFooterSize * 2.5 : 0) - baseWatermarkSize * 3;
             
             currentY = contentStartY;
             
@@ -806,16 +970,24 @@
             
             for (let paragraph of contentParagraphs) {
                 if (!paragraph.trim()) {
-                    currentY += contentFontSize * currentLineHeight * 0.8; // Smaller gap for empty lines
+                    currentY += baseContentSize * currentLineHeight * 0.8;
                     continue;
                 }
                 
                 const lines = smartWrapText(ctx, paragraph, maxContentWidth);
                 for (let line of lines) {
-                    if (currentY + contentFontSize > contentStartY + maxContentHeight) break;
-                    const xPos = currentTemplate === 'cover' ? width / 2 : padding;
+                    if (currentY + baseContentSize > contentStartY + maxContentHeight) break;
+                    const xPos = currentTemplate === 'cover' ? width / 2 : basePadding;
+                    
+                    if (contentStyles.underline) {
+                        const lineWidth = ctx.measureText(line).width;
+                        const underlineY = currentY + baseContentSize * 0.1;
+                        const underlineX = currentTemplate === 'cover' ? (width - lineWidth) / 2 : basePadding;
+                        ctx.fillRect(underlineX, underlineY, lineWidth, 2 * scaleFactor);
+                    }
+                    
                     ctx.fillText(line, xPos, currentY);
-                    currentY += contentFontSize * currentLineHeight;
+                    currentY += baseContentSize * currentLineHeight;
                 }
             }
             
@@ -827,23 +999,23 @@
             
             // Draw footer if exists
             if (footer && footer.trim()) {
-                ctx.font = `italic ${footerFontSize}px '${fontFamily}', serif`;
+                ctx.font = `italic ${baseFooterSize}px '${fontFamily}', serif`;
                 ctx.fillStyle = currentPalette === 'light' ? 'rgba(73, 80, 87, 0.8)' : 'rgba(255, 255, 255, 0.8)';
                 ctx.textAlign = 'center';
-                ctx.fillText(footer, width / 2, height - padding - watermarkFontSize * 2.5);
+                ctx.fillText(footer, width / 2, height - basePadding - baseWatermarkSize * 2.5);
             }
             
             // Draw watermark
-            ctx.font = `600 ${watermarkFontSize}px 'Inter', sans-serif`;
+            ctx.font = `600 ${baseWatermarkSize}px 'Playfair Display', serif`;
             ctx.fillStyle = watermarkColor;
             ctx.textAlign = 'right';
-            ctx.fillText('INTI - Interkoneksi Narasi Teknologi Intelektual', width - padding * 0.7, height - padding * 0.7);
+            ctx.fillText('INTI - Interkoneksi Narasi Teknologi Intelektual', width - basePadding * 0.7, height - basePadding * 0.7);
             
-            // Download image
+            // Download image with higher quality
             const link = document.createElement('a');
             const timestamp = new Date().toISOString().slice(0, 10);
             const templateType = currentTemplate === 'cover' ? 'Cover' : 'Content';
-            const filename = `INTI-${templateType}-${timestamp}.png`;
+            const filename = `INTI-${templateType}-HD-${timestamp}.png`;
             
             canvas.toBlob(function(blob) {
                 const url = URL.createObjectURL(blob);
@@ -851,11 +1023,11 @@
                 link.download = filename;
                 link.click();
                 URL.revokeObjectURL(url);
-                showToast('Gambar berhasil didownload!');
-            }, 'image/png');
+                showToast('Gambar HD berhasil didownload!');
+            }, 'image/png', 1.0); // Maximum quality
         }
         
-        // Improved text wrapping function that mimics CSS behavior more closely
+        // Improved text wrapping function
         function smartWrapText(ctx, text, maxWidth) {
             const words = text.split(' ');
             const lines = [];
@@ -883,17 +1055,33 @@
         }
         
         function resetForm() {
+            // Reset input values
             document.getElementById('title').value = '';
             document.getElementById('content').value = '';
             document.getElementById('footer').value = '';
             document.getElementById('fontFamily').value = 'Merriweather';
             document.getElementById('lineHeight').value = '1.6';
             document.getElementById('lineHeightValue').textContent = '1.6';
+            document.getElementById('titleFontSize').value = '22';
+            document.getElementById('titleFontSizeValue').textContent = '22px';
+            document.getElementById('contentFontSize').value = '14';
+            document.getElementById('contentFontSizeValue').textContent = '14px';
+            
+            // Reset preview
             document.getElementById('previewTitle').textContent = 'Judul Anda Akan Muncul Di Sini';
             document.getElementById('previewContent').textContent = 'Konten Anda akan ditampilkan di sini. Ketik pada form di sebelah kiri untuk melihat preview secara real-time.';
             document.getElementById('previewFooter').style.display = 'none';
             document.getElementById('previewContent').style.lineHeight = '1.6';
             document.getElementById('postContent').style.fontFamily = "'Merriweather', serif";
+            
+            // Reset font sizes
+            document.getElementById('previewTitle').style.fontSize = '22px';
+            document.getElementById('previewContent').style.fontSize = '14px';
+            
+            // Reset font styles
+            document.querySelectorAll('.style-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('previewTitle').classList.remove('bold', 'italic', 'underline');
+            document.getElementById('previewContent').classList.remove('bold', 'italic', 'underline');
             
             // Reset template and palette
             document.querySelectorAll('.template-option').forEach(opt => opt.classList.remove('active'));
@@ -901,20 +1089,29 @@
             document.querySelectorAll('.palette-option').forEach(opt => opt.classList.remove('active'));
             document.querySelector('.palette-option[data-palette="dark"]').classList.add('active');
             
+            // Reset variables
             currentTemplate = 'content';
             currentPalette = 'dark';
             currentLineHeight = 1.6;
+            titleStyles = { bold: false, italic: false, underline: false };
+            contentStyles = { bold: false, italic: false, underline: false };
+            titleFontSize = 22;
+            contentFontSize = 14;
             
             updateTemplate();
             updateColorPalette();
+            updateCanvasScale();
             document.getElementById('customColorInputs').classList.remove('show');
             
             showToast('Form berhasil direset!');
         }
 
         // Initialize default values
+        document.getElementById('previewTitle').style.fontSize = titleFontSize + 'px';
+        document.getElementById('previewContent').style.fontSize = contentFontSize + 'px';
         document.getElementById('postContent').style.fontFamily = "'Merriweather', serif";
         document.getElementById('previewContent').style.lineHeight = currentLineHeight;
+        updateCanvasScale();
     </script>
 </body>
 </html>
