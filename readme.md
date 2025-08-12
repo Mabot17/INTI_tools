@@ -1,0 +1,1 @@
+untuk kebutuhan genrator image

@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Post Generator - INTI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .editor-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .preview-panel {
+            position: sticky;
+            top: 20px;
+        }
+
+        h1 {
+            color: #D4AF37;
+            margin-bottom: 25px;
+            text-align: center;
+            font-size: 2rem;
+            text-shadow: 0 2px 10px rgba(212, 175, 55, 0.3);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #D4AF37;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(212, 175, 55, 0.3);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #D4AF37;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .template-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .template-option {
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(212, 175, 55, 0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .template-option.active {
+            background: rgba(212, 175, 55, 0.2);
+            border-color: #D4AF37;
+            color: #D4AF37;
+        }
+
+        .template-option:hover {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: #D4AF37;
+        }
+
+        .color-palette-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .palette-option {
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .palette-light {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            color: #495057;
+        }
+
+        .palette-dark {
+            background: linear-gradient(135deg, #2C1810, #D4AF37);
+            color: #fff;
+        }
+
+        .palette-custom {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+        }
+
+        .palette-option.active {
+            border-color: #D4AF37;
+            transform: scale(1.05);
+        }
+
+        .custom-color-inputs {
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .custom-color-inputs.show {
+            display: grid;
+        }
+
+        .color-input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        input[type="color"] {
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .post-canvas {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            margin: 0 auto;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            cursor: grab;
+        }
+
+        .post-canvas:active {
+            cursor: grabbing;
+        }
+
+        .post-content {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #2C1810 0%, #8B4513 30%, #D4AF37 100%);
+            display: flex;
+            flex-direction: column;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .post-content.template-cover {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 50px 30px;
+        }
+
+        .post-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(212, 175, 55, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(139, 69, 19, 0.1) 0%, transparent 50%);
+        }
+
+        .post-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #fff;
+            text-align: center;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            z-index: 2;
+            position: relative;
+            line-height: 1.2;
+        }
+
+        .post-content.template-cover .post-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            line-height: 1.3;
+        }
+
+        .post-body {
+            flex: 1;
+            font-size: 14px;
+            color: #f5f5f5;
+            line-height: 1.6;
+            text-align: justify;
+            z-index: 2;
+            position: relative;
+            overflow: hidden;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+            white-space: pre-line;
+        }
+
+        .post-content.template-cover .post-body {
+            flex: none;
+            font-size: 16px;
+            text-align: center;
+            line-height: 1.8;
+            max-width: 90%;
+        }
+
+        .post-footer {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.8);
+            text-align: center;
+            margin-top: 15px;
+            z-index: 2;
+            position: relative;
+            font-style: italic;
+        }
+
+        .watermark {
+            position: absolute;
+            bottom: 15px;
+            right: 20px;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 600;
+            z-index: 3;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            letter-spacing: 1px;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #D4AF37, #B8941F);
+            color: #1a1a1a;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(212, 175, 55, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 2px solid rgba(212, 175, 55, 0.5);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: #D4AF37;
+        }
+
+        .size-selector {
+            margin-top: 20px;
+        }
+
+        .line-height-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .line-height-group input[type="range"] {
+            flex: 1;
+            height: 6px;
+            background: rgba(212, 175, 55, 0.3);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .line-height-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #D4AF37;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .line-height-value {
+            color: #D4AF37;
+            font-weight: 600;
+            min-width: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .post-canvas {
+                width: 100%;
+                max-width: 400px;
+                height: auto;
+                aspect-ratio: 1;
+            }
+
+            .controls {
+                grid-template-columns: 1fr;
+            }
+
+            .template-selector {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #D4AF37, #B8941F);
+            color: #1a1a1a;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-weight: 600;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        /* Color palette variants */
+        .palette-light-mode {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 30%, #ffffff 100%);
+        }
+
+        .palette-light-mode .post-title,
+        .palette-light-mode .post-body,
+        .palette-light-mode .post-footer {
+            color: #495057;
+            text-shadow: none;
+        }
+
+        .palette-light-mode .watermark {
+            color: rgba(73, 80, 87, 0.7);
+            text-shadow: none;
+        }
+
+        .palette-light-mode::before {
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(73, 80, 87, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(0, 0, 0, 0.02) 0%, transparent 50%);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="editor-panel">
+            <h1>INTI Post Generator</h1>
+            
+            <!-- Template Type Selector -->
+            <div class="form-group">
+                <label>Template Type</label>
+                <div class="template-selector">
+                    <div class="template-option active" data-template="content">
+                        📝 Template Isi
+                    </div>
+                    <div class="template-option" data-template="cover">
+                        🎨 Template Cover
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="title">Judul Post</label>
+                <input type="text" id="title" placeholder="Masukkan judul konten Anda...">
+            </div>
+
+            <div class="form-group">
+                <label for="content">Konten</label>
+                <textarea id="content" placeholder="Tulis konten Anda di sini..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="footer">Footer (Opsional)</label>
+                <input type="text" id="footer" placeholder="Footer tambahan...">
+            </div>
+
+            <!-- Font Selector -->
+            <div class="form-group">
+                <label for="fontFamily">Font Family</label>
+                <select id="fontFamily">
+                    <option value="Merriweather">Merriweather (Serif)</option>
+                    <option value="Inter">Inter (Sans-serif)</option>
+                    <option value="Playfair Display">Playfair Display (Elegant)</option>
+                    <option value="Roboto">Roboto (Clean)</option>
+                    <option value="Open Sans">Open Sans (Modern)</option>
+                </select>
+            </div>
+
+            <!-- Line Height Control -->
+            <div class="form-group">
+                <label>Line Spacing</label>
+                <div class="line-height-group">
+                    <input type="range" id="lineHeight" min="1.2" max="2.5" step="0.1" value="1.6">
+                    <span class="line-height-value" id="lineHeightValue">1.6</span>
+                </div>
+            </div>
+
+            <!-- Color Palette Selector -->
+            <div class="form-group">
+                <label>Color Palette</label>
+                <div class="color-palette-selector">
+                    <div class="palette-option palette-light" data-palette="light">
+                        Light Mode
+                    </div>
+                    <div class="palette-option palette-dark active" data-palette="dark">
+                        Dark Mode
+                    </div>
+                    <div class="palette-option palette-custom" data-palette="custom">
+                        Custom
+                    </div>
+                </div>
+                <div class="custom-color-inputs" id="customColorInputs">
+                    <div class="color-input-group">
+                        <input type="color" id="bgColor1" value="#667eea">
+                        <label for="bgColor1" style="font-size: 12px; text-transform: none;">BG Start</label>
+                    </div>
+                    <div class="color-input-group">
+                        <input type="color" id="bgColor2" value="#764ba2">
+                        <label for="bgColor2" style="font-size: 12px; text-transform: none;">BG End</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group size-selector">
+                <label for="size">Ukuran Output</label>
+                <select id="size">
+                    <option value="instagram">Instagram Square (1080x1080)</option>
+                    <option value="story">Instagram Story (1080x1920)</option>
+                    <option value="facebook">Facebook Post (1200x630)</option>
+                    <option value="custom">Custom Size</option>
+                </select>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-primary" onclick="downloadImage()">Download Gambar</button>
+                <button class="btn btn-secondary" onclick="resetForm()">Reset Form</button>
+            </div>
+        </div>
+
+        <div class="preview-panel">
+            <div class="post-canvas" id="postCanvas">
+                <div class="post-content" id="postContent">
+                    <div class="post-title" id="previewTitle">Judul Anda Akan Muncul Di Sini</div>
+                    <div class="post-body" id="previewContent">Konten Anda akan ditampilkan di sini. Ketik pada form di sebelah kiri untuk melihat preview secara real-time.</div>
+                    <div class="post-footer" id="previewFooter"></div>
+                    <div class="watermark">INTI - Interkoneksi Narasi Teknologi Intelektual</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let currentTemplate = 'content';
+        let currentPalette = 'dark';
+        let currentLineHeight = 1.6;
+
+        // Template type selector
+        document.querySelectorAll('.template-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.template-option').forEach(opt => opt.classList.remove('active'));
+                this.classList.add('active');
+                currentTemplate = this.dataset.template;
+                updateTemplate();
+            });
+        });
+
+        // Color palette selector
+        document.querySelectorAll('.palette-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.palette-option').forEach(opt => opt.classList.remove('active'));
+                this.classList.add('active');
+                currentPalette = this.dataset.palette;
+                updateColorPalette();
+                
+                // Show/hide custom color inputs
+                const customInputs = document.getElementById('customColorInputs');
+                if (currentPalette === 'custom') {
+                    customInputs.classList.add('show');
+                } else {
+                    customInputs.classList.remove('show');
+                }
+            });
+        });
+
+        // Custom color inputs
+        document.getElementById('bgColor1').addEventListener('change', updateColorPalette);
+        document.getElementById('bgColor2').addEventListener('change', updateColorPalette);
+
+        // Font family selector
+        document.getElementById('fontFamily').addEventListener('change', function() {
+            const postContent = document.getElementById('postContent');
+            postContent.style.fontFamily = `'${this.value}', serif`;
+        });
+
+        // Line height control
+        document.getElementById('lineHeight').addEventListener('input', function() {
+            currentLineHeight = parseFloat(this.value);
+            document.getElementById('lineHeightValue').textContent = currentLineHeight.toFixed(1);
+            document.getElementById('previewContent').style.lineHeight = currentLineHeight;
+        });
+
+        function updateTemplate() {
+            const postContent = document.getElementById('postContent');
+            if (currentTemplate === 'cover') {
+                postContent.classList.add('template-cover');
+            } else {
+                postContent.classList.remove('template-cover');
+            }
+        }
+
+        function updateColorPalette() {
+            const postContent = document.getElementById('postContent');
+            
+            // Remove existing palette classes
+            postContent.classList.remove('palette-light-mode');
+            
+            if (currentPalette === 'light') {
+                postContent.classList.add('palette-light-mode');
+            } else if (currentPalette === 'dark') {
+                postContent.style.background = 'linear-gradient(135deg, #2C1810 0%, #8B4513 30%, #D4AF37 100%)';
+            } else if (currentPalette === 'custom') {
+                const color1 = document.getElementById('bgColor1').value;
+                const color2 = document.getElementById('bgColor2').value;
+                postContent.style.background = `linear-gradient(135deg, ${color1} 0%, ${color2} 100%)`;
+            }
+        }
+
+        // Real-time preview updates
+        document.getElementById('title').addEventListener('input', function() {
+            const title = this.value || 'Judul Anda Akan Muncul Di Sini';
+            document.getElementById('previewTitle').textContent = title;
+        });
+
+        document.getElementById('content').addEventListener('input', function() {
+            const content = this.value || 'Konten Anda akan ditampilkan di sini. Ketik pada form di sebelah kiri untuk melihat preview secara real-time.';
+            document.getElementById('previewContent').textContent = content;
+        });
+
+        document.getElementById('footer').addEventListener('input', function() {
+            const footer = this.value;
+            const footerElement = document.getElementById('previewFooter');
+            if (footer.trim()) {
+                footerElement.textContent = footer;
+                footerElement.style.display = 'block';
+            } else {
+                footerElement.style.display = 'none';
+            }
+        });
+
+        document.getElementById('size').addEventListener('change', function() {
+            const canvas = document.getElementById('postCanvas');
+            const size = this.value;
+            
+            switch(size) {
+                case 'instagram':
+                    canvas.style.width = '400px';
+                    canvas.style.height = '400px';
+                    break;
+                case 'story':
+                    canvas.style.width = '225px';
+                    canvas.style.height = '400px';
+                    break;
+                case 'facebook':
+                    canvas.style.width = '400px';
+                    canvas.style.height = '210px';
+                    break;
+                case 'custom':
+                    break;
+            }
+        });
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        function downloadImage() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const postContent = document.getElementById('postContent');
+            const size = document.getElementById('size').value;
+            
+            // Set canvas dimensions based on selected size
+            let width, height;
+            switch(size) {
+                case 'instagram':
+                    width = height = 1080;
+                    break;
+                case 'story':
+                    width = 1080;
+                    height = 1920;
+                    break;
+                case 'facebook':
+                    width = 1200;
+                    height = 630;
+                    break;
+                default:
+                    width = height = 1080;
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Create background based on current palette
+            let bgColor1, bgColor2, textColor, watermarkColor;
+            
+            if (currentPalette === 'light') {
+                bgColor1 = '#f8f9fa';
+                bgColor2 = '#ffffff';
+                textColor = '#495057';
+                watermarkColor = 'rgba(73, 80, 87, 0.7)';
+            } else if (currentPalette === 'dark') {
+                bgColor1 = '#2C1810';
+                bgColor2 = '#D4AF37';
+                textColor = '#ffffff';
+                watermarkColor = 'rgba(255, 255, 255, 0.7)';
+            } else {
+                bgColor1 = document.getElementById('bgColor1').value;
+                bgColor2 = document.getElementById('bgColor2').value;
+                textColor = '#ffffff';
+                watermarkColor = 'rgba(255, 255, 255, 0.7)';
+            }
+            
+            const gradient = ctx.createLinearGradient(0, 0, width, height);
+            gradient.addColorStop(0, bgColor1);
+            gradient.addColorStop(1, bgColor2);
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+            
+            // Calculate padding and font sizes based on canvas size
+            const padding = width * 0.08;
+            const titleFontSize = currentTemplate === 'cover' ? width * 0.06 : width * 0.05;
+            const contentFontSize = currentTemplate === 'cover' ? width * 0.035 : width * 0.032;
+            const footerFontSize = width * 0.025;
+            const watermarkFontSize = width * 0.022;
+            
+            // Get text content and font family
+            const title = document.getElementById('title').value || 'Judul Anda Akan Muncul Di Sini';
+            const content = document.getElementById('content').value || 'Konten Anda akan ditampilkan di sini.';
+            const footer = document.getElementById('footer').value;
+            const fontFamily = document.getElementById('fontFamily').value;
+            
+            // Draw title
+            ctx.font = `bold ${titleFontSize}px ${fontFamily}`;
+            ctx.fillStyle = textColor;
+            ctx.textAlign = 'center';
+            
+            if (currentPalette !== 'light') {
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                ctx.shadowBlur = 4;
+                ctx.shadowOffsetX = 2;
+                ctx.shadowOffsetY = 2;
+            }
+            
+            const titleLines = wrapText(ctx, title, width - (padding * 2), titleFontSize);
+            let currentY;
+            
+            if (currentTemplate === 'cover') {
+                // Center everything for cover template
+                const totalTextHeight = (titleLines.length * titleFontSize * 1.3) + 
+                                      (content.split('\n').length * contentFontSize * currentLineHeight) + 
+                                      (footer ? footerFontSize * 2 : 0);
+                currentY = (height - totalTextHeight) / 2 + titleFontSize;
+            } else {
+                currentY = padding + titleFontSize;
+            }
+            
+            titleLines.forEach(line => {
+                ctx.fillText(line, width / 2, currentY);
+                currentY += titleFontSize * 1.3;
+            });
+            
+            // Draw content
+            ctx.font = `${contentFontSize}px ${fontFamily}`;
+            ctx.fillStyle = currentPalette === 'light' ? '#495057' : '#f5f5f5';
+            ctx.textAlign = currentTemplate === 'cover' ? 'center' : 'left';
+            ctx.shadowBlur = currentPalette === 'light' ? 0 : 2;
+            
+            const contentStartY = currentY + (currentTemplate === 'cover' ? padding * 0.5 : padding * 0.3);
+            const maxContentHeight = height - contentStartY - padding - (footer ? footerFontSize * 2 : 0) - watermarkFontSize * 2;
+            
+            const contentParagraphs = content.split('\n');
+            currentY = contentStartY;
+            
+            for (let paragraph of contentParagraphs) {
+                if (!paragraph.trim()) {
+                    currentY += contentFontSize * currentLineHeight;
+                    continue;
+                }
+                
+                const lines = wrapText(ctx, paragraph, width - (padding * 2), contentFontSize);
+                for (let line of lines) {
+                    if (currentY + contentFontSize > contentStartY + maxContentHeight) break;
+                    const xPos = currentTemplate === 'cover' ? width / 2 : padding;
+                    ctx.fillText(line, xPos, currentY);
+                    currentY += contentFontSize * currentLineHeight;
+                }
+            }
+            
+            // Draw footer if exists
+            if (footer && footer.trim()) {
+                ctx.font = `italic ${footerFontSize}px ${fontFamily}`;
+                ctx.fillStyle = currentPalette === 'light' ? 'rgba(73, 80, 87, 0.8)' : 'rgba(255, 255, 255, 0.8)';
+                ctx.textAlign = 'center';
+                ctx.fillText(footer, width / 2, height - padding - watermarkFontSize * 2);
+            }
+            
+            // Draw watermark
+            ctx.font = `600 ${watermarkFontSize}px Inter`;
+            ctx.fillStyle = watermarkColor;
+            ctx.textAlign = 'right';
+            ctx.fillText('INTI - Interkoneksi Narasi Teknologi Intelektual', width - padding * 0.5, height - padding * 0.5);
+            
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            
+            // Download image
+            const link = document.createElement('a');
+            const timestamp = new Date().toISOString().slice(0, 10);
+            const templateType = currentTemplate === 'cover' ? 'Cover' : 'Content';
+            const filename = `INTI-${templateType}-${timestamp}.png`;
+            
+            canvas.toBlob(function(blob) {
+                const url = URL.createObjectURL(blob);
+                link.href = url;
+                link.download = filename;
+                link.click();
+                URL.revokeObjectURL(url);
+                showToast('Gambar berhasil didownload!');
+            }, 'image/png');
+        }
+        
+        function wrapText(ctx, text, maxWidth, fontSize) {
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = words[0];
+            
+            for (let i = 1; i < words.length; i++) {
+                const word = words[i];
+                const width = ctx.measureText(currentLine + ' ' + word).width;
+                if (width < maxWidth) {
+                    currentLine += ' ' + word;
+                } else {
+                    lines.push(currentLine);
+                    currentLine = word;
+                }
+            }
+            lines.push(currentLine);
+            return lines;
+        }
+        
+        function resetForm() {
+            document.getElementById('title').value = '';
+            document.getElementById('content').value = '';
+            document.getElementById('footer').value = '';
+            document.getElementById('fontFamily').value = 'Merriweather';
+            document.getElementById('lineHeight').value = '1.6';
+            document.getElementById('lineHeightValue').textContent = '1.6';
+            document.getElementById('previewTitle').textContent = 'Judul Anda Akan Muncul Di Sini';
+            document.getElementById('previewContent').textContent = 'Konten Anda akan ditampilkan di sini. Ketik pada form di sebelah kiri untuk melihat preview secara real-time.';
+            document.getElementById('previewFooter').style.display = 'none';
+            document.getElementById('previewContent').style.lineHeight = '1.6';
+            document.getElementById('postContent').style.fontFamily = "'Merriweather', serif";
+            
+            // Reset template and palette
+            document.querySelectorAll('.template-option').forEach(opt => opt.classList.remove('active'));
+            document.querySelector('.template-option[data-template="content"]').classList.add('active');
+            document.querySelectorAll('.palette-option').forEach(opt => opt.classList.remove('active'));
+            document.querySelector('.palette-option[data-palette="dark"]').classList.add('active');
+            
+            currentTemplate = 'content';
+            currentPalette = 'dark';
+            currentLineHeight = 1.6;
+            
+            updateTemplate();
+            updateColorPalette();
+            document.getElementById('customColorInputs').classList.remove('show');
+            
+            showToast('Form berhasil direset!');
+        }
+
+        // Initialize default values
+        document.getElementById('postContent').style.fontFamily = "'Merriweather', serif";
+        document.getElementById('previewContent').style.lineHeight = currentLineHeight;
+    </script>
+</body>
+</html>
