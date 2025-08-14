@@ -4,32 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instagram Post Generator - INTI Enhanced</title>
-    
-    <!-- External CDN Resources -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Bootstrap CSS for Grid and Components -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Font Awesome for Icons -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    
-    <!-- Animate.css for Animations -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
-
     <style>
-        :root {
-            --primary-gold: #D4AF37;
-            --gold-dark: #B8941F;
-            --bg-dark: #1a1a1a;
-            --bg-secondary: #2d2d2d;
-            --text-light: #fff;
-            --glass-bg: rgba(255, 255, 255, 0.1);
-            --glass-border: rgba(255, 255, 255, 0.2);
-        }
-
         * {
             margin: 0;
             padding: 0;
@@ -38,53 +16,92 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-secondary) 100%);
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
             min-height: 100vh;
-            color: var(--text-light);
+            padding: 20px;
+            color: #fff;
         }
 
-        .glass-panel {
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .editor-panel {
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .gold-text { color: var(--primary-gold); }
-        .gold-bg { background: linear-gradient(135deg, var(--primary-gold), var(--gold-dark)); }
+        .preview-panel {
+            position: sticky;
+            top: 20px;
+        }
 
-        .main-title {
-            color: var(--primary-gold);
-            text-shadow: 0 2px 10px rgba(212, 175, 55, 0.3);
+        h1 {
+            color: #D4AF37;
+            margin-bottom: 25px;
+            text-align: center;
             font-size: 2rem;
-            margin-bottom: 1.5rem;
+            text-shadow: 0 2px 10px rgba(212, 175, 55, 0.3);
         }
 
-        .form-label {
-            color: var(--primary-gold);
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #D4AF37;
             font-weight: 600;
             text-transform: uppercase;
             font-size: 0.9rem;
             letter-spacing: 1px;
-            margin-bottom: 0.5rem;
         }
 
-        .form-control, .form-select {
-            background: var(--glass-bg);
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.1);
             border: 2px solid rgba(212, 175, 55, 0.3);
             border-radius: 8px;
-            color: var(--text-light);
+            color: #fff;
+            font-size: 16px;
             transition: all 0.3s ease;
         }
 
-        .form-control:focus, .form-select:focus {
-            background: var(--glass-bg);
-            border-color: var(--primary-gold);
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #D4AF37;
             box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
-            color: var(--text-light);
         }
 
-        .template-option, .palette-option {
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .template-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .template-option {
             padding: 15px;
             background: rgba(255, 255, 255, 0.05);
             border: 2px solid rgba(212, 175, 55, 0.3);
@@ -92,18 +109,26 @@
             cursor: pointer;
             text-align: center;
             transition: all 0.3s ease;
+            font-size: 14px;
             font-weight: 500;
         }
 
-        .template-option.active, .palette-option.active {
+        .template-option.active {
             background: rgba(212, 175, 55, 0.2);
-            border-color: var(--primary-gold);
-            color: var(--primary-gold);
+            border-color: #D4AF37;
+            color: #D4AF37;
         }
 
-        .template-option:hover, .palette-option:hover {
+        .template-option:hover {
             background: rgba(212, 175, 55, 0.1);
-            border-color: var(--primary-gold);
+            border-color: #D4AF37;
+        }
+
+        .font-style-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 10px;
         }
 
         .style-btn {
@@ -111,23 +136,122 @@
             background: rgba(255, 255, 255, 0.05);
             border: 2px solid rgba(212, 175, 55, 0.3);
             border-radius: 6px;
-            color: var(--text-light);
+            color: #fff;
             cursor: pointer;
             transition: all 0.3s ease;
+            font-size: 14px;
             font-weight: 500;
             text-align: center;
-            margin: 0 2px;
         }
 
         .style-btn.active {
             background: rgba(212, 175, 55, 0.2);
-            border-color: var(--primary-gold);
-            color: var(--primary-gold);
+            border-color: #D4AF37;
+            color: #D4AF37;
+        }
+
+        .style-btn:hover {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: #D4AF37;
+        }
+
+        .size-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .size-control input[type="range"] {
+            flex: 1;
+            height: 6px;
+            background: rgba(212, 175, 55, 0.3);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .size-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #D4AF37;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .size-value {
+            color: #D4AF37;
+            font-weight: 600;
+            min-width: 40px;
+            font-size: 14px;
+        }
+
+        .color-palette-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .palette-option {
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .palette-light {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            color: #495057;
+        }
+
+        .palette-dark {
+            background: linear-gradient(135deg, #2C1810, #D4AF37);
+            color: #fff;
+        }
+
+        .palette-custom {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+        }
+
+        .palette-option.active {
+            border-color: #D4AF37;
+            transform: scale(1.05);
+        }
+
+        .custom-color-inputs {
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .custom-color-inputs.show {
+            display: grid;
+        }
+
+        .color-input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        input[type="color"] {
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
         }
 
         .post-canvas {
-            position: sticky;
-            top: 20px;
+            position: relative;
             width: 400px;
             height: 400px;
             margin: 0 auto;
@@ -225,38 +349,97 @@
             letter-spacing: 1px;
         }
 
-        .btn-gold {
-            background: linear-gradient(135deg, var(--primary-gold), var(--gold-dark));
-            color: #1a1a1a;
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .btn {
+            padding: 12px 20px;
             border: none;
+            border-radius: 8px;
             font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 1px;
-            transition: all 0.3s ease;
+            font-size: 14px;
         }
 
-        .btn-gold:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(212, 175, 55, 0.3);
+        .btn-primary {
+            background: linear-gradient(135deg, #D4AF37, #B8941F);
             color: #1a1a1a;
         }
 
-        .btn-outline-gold {
-            background: var(--glass-bg);
-            color: var(--text-light);
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(212, 175, 55, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
             border: 2px solid rgba(212, 175, 55, 0.5);
         }
 
-        .btn-outline-gold:hover {
+        .btn-secondary:hover {
             background: rgba(212, 175, 55, 0.1);
-            border-color: var(--primary-gold);
-            color: var(--text-light);
+            border-color: #D4AF37;
         }
 
-        /* Text Highlight Styles */
-        .highlight-bold { font-weight: bold !important; }
-        .highlight-italic { font-style: italic !important; }
-        .highlight-underline { text-decoration: underline !important; }
+        .size-selector {
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .post-canvas {
+                width: 100%;
+                max-width: 400px;
+                height: auto;
+                aspect-ratio: 1;
+            }
+
+            .controls {
+                grid-template-columns: 1fr;
+            }
+
+            .template-selector {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .font-style-controls {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #D4AF37, #B8941F);
+            color: #1a1a1a;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-weight: 600;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
 
         /* Color palette variants */
         .palette-light-mode {
@@ -281,278 +464,175 @@
                 radial-gradient(circle at 80% 20%, rgba(0, 0, 0, 0.02) 0%, transparent 50%);
         }
 
-        .toast-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1050;
-        }
-
-        .text-editor-toolbar {
-            background: var(--glass-bg);
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 10px;
-            border: 1px solid var(--glass-border);
-        }
-
-        .text-selection-overlay {
-            position: absolute;
-            background: rgba(212, 175, 55, 0.3);
-            pointer-events: none;
-            border-radius: 3px;
-            z-index: 10;
-        }
-
-        @media (max-width: 768px) {
-            .post-canvas {
-                width: 100%;
-                max-width: 350px;
-            }
-            
-            .main-title {
-                font-size: 1.5rem;
-            }
-        }
+        /* Font styling classes */
+        .bold { font-weight: bold !important; }
+        .italic { font-style: italic !important; }
+        .underline { text-decoration: underline !important; }
     </style>
 </head>
 <body>
-    <div class="container-fluid py-4">
-        <div class="row g-4">
-            <!-- Editor Panel -->
-            <div class="col-lg-7">
-                <div class="glass-panel p-4">
-                    <h1 class="main-title text-center">
-                        <i class="fas fa-magic me-2"></i>
-                        INTI Post Generator
-                    </h1>
-                    
-                    <!-- Template Type Selector -->
-                    <div class="mb-4">
-                        <label class="form-label">Template Type</label>
-                        <div class="row g-2">
-                            <div class="col-6">
-                                <div class="template-option active" data-template="content">
-                                    <i class="fas fa-file-alt me-2"></i>Template Isi
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="template-option" data-template="cover">
-                                    <i class="fas fa-palette me-2"></i>Template Cover
-                                </div>
-                            </div>
-                        </div>
+    <div class="container">
+        <div class="editor-panel">
+            <h1>INTI Post Generator</h1>
+            
+            <!-- Template Type Selector -->
+            <div class="form-group">
+                <label>Template Type</label>
+                <div class="template-selector">
+                    <div class="template-option active" data-template="content">
+                        📝 Template Isi
                     </div>
-
-                    <!-- Title Input with Text Editor -->
-                    <div class="mb-4">
-                        <label for="title" class="form-label">Judul Post</label>
-                        <div class="text-editor-toolbar">
-                            <div class="btn-group" role="group">
-                                <button type="button" class="style-btn" data-style="bold" data-target="title">
-                                    <i class="fas fa-bold"></i>
-                                </button>
-                                <button type="button" class="style-btn" data-style="italic" data-target="title">
-                                    <i class="fas fa-italic"></i>
-                                </button>
-                                <button type="button" class="style-btn" data-style="underline" data-target="title">
-                                    <i class="fas fa-underline"></i>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-light ms-2" onclick="clearTitleFormatting()">
-                                    <i class="fas fa-eraser"></i> Clear
-                                </button>
-                            </div>
-                        </div>
-                        <textarea class="form-control" id="title" rows="2" placeholder="Masukkan judul konten Anda..." spellcheck="false"></textarea>
-                    </div>
-
-                    <!-- Title Font Size -->
-                    <div class="mb-4">
-                        <label class="form-label">Ukuran Font Judul</label>
-                        <div class="row align-items-center">
-                            <div class="col-10">
-                                <input type="range" class="form-range" id="titleFontSize" min="16" max="128" value="22" step="1">
-                            </div>
-                            <div class="col-2">
-                                <span class="gold-text fw-bold" id="titleFontSizeValue">22px</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Content Input with Text Editor -->
-                    <div class="mb-4">
-                        <label for="content" class="form-label">Konten</label>
-                        <div class="text-editor-toolbar">
-                            <div class="btn-group" role="group">
-                                <button type="button" class="style-btn" data-style="bold" data-target="content">
-                                    <i class="fas fa-bold"></i>
-                                </button>
-                                <button type="button" class="style-btn" data-style="italic" data-target="content">
-                                    <i class="fas fa-italic"></i>
-                                </button>
-                                <button type="button" class="style-btn" data-style="underline" data-target="content">
-                                    <i class="fas fa-underline"></i>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-light ms-2" onclick="clearContentFormatting()">
-                                    <i class="fas fa-eraser"></i> Clear
-                                </button>
-                            </div>
-                        </div>
-                        <textarea class="form-control" id="content" rows="6" placeholder="Tulis konten Anda di sini..." spellcheck="false"></textarea>
-                    </div>
-
-                    <!-- Content Font Size -->
-                    <div class="mb-4">
-                        <label class="form-label">Ukuran Font Konten</label>
-                        <div class="row align-items-center">
-                            <div class="col-10">
-                                <input type="range" class="form-range" id="contentFontSize" min="10" max="64" value="14" step="1">
-                            </div>
-                            <div class="col-2">
-                                <span class="gold-text fw-bold" id="contentFontSizeValue">14px</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Footer -->
-                    <div class="mb-4">
-                        <label for="footer" class="form-label">Footer (Opsional)</label>
-                        <input type="text" class="form-control" id="footer" placeholder="Footer tambahan...">
-                    </div>
-
-                    <!-- Font Settings -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label for="fontFamily" class="form-label">Font Family</label>
-                            <select class="form-select" id="fontFamily">
-                                <option value="Merriweather">Merriweather (Serif)</option>
-                                <option value="Inter">Inter (Sans-serif)</option>
-                                <option value="Playfair Display">Playfair Display (Elegant)</option>
-                                <option value="Roboto">Roboto (Clean)</option>
-                                <option value="Open Sans">Open Sans (Modern)</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Line Spacing</label>
-                            <div class="row align-items-center">
-                                <div class="col-8">
-                                    <input type="range" class="form-range" id="lineHeight" min="1.2" max="2.5" step="0.1" value="1.6">
-                                </div>
-                                <div class="col-4">
-                                    <span class="gold-text fw-bold" id="lineHeightValue">1.6</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Color Palette -->
-                    <div class="mb-4">
-                        <label class="form-label">Color Palette</label>
-                        <div class="row g-2">
-                            <div class="col-4">
-                                <div class="palette-option" style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); color: #495057;" data-palette="light">
-                                    Light Mode
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="palette-option active" style="background: linear-gradient(135deg, #2C1810, #D4AF37); color: #fff;" data-palette="dark">
-                                    Dark Mode
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="palette-option" style="background: linear-gradient(135deg, #667eea, #764ba2); color: #fff;" data-palette="custom">
-                                    Custom
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row g-2 mt-2 d-none" id="customColorInputs">
-                            <div class="col-6">
-                                <div class="input-group">
-                                    <input type="color" class="form-control form-control-color" id="bgColor1" value="#667eea" title="Background Start">
-                                    <label class="input-group-text" for="bgColor1">BG Start</label>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="input-group">
-                                    <input type="color" class="form-control form-control-color" id="bgColor2" value="#764ba2" title="Background End">
-                                    <label class="input-group-text" for="bgColor2">BG End</label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Size Selector -->
-                    <div class="mb-4">
-                        <label for="size" class="form-label">Ukuran Output</label>
-                        <select class="form-select" id="size">
-                            <option value="instagram">Instagram Square (1080x1080)</option>
-                            <option value="story">Instagram Story (1080x1920)</option>
-                            <option value="facebook">Facebook Post (1200x630)</option>
-                        </select>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <button class="btn btn-gold w-100" onclick="downloadImage()">
-                                <i class="fas fa-download me-2"></i>Download HD
-                            </button>
-                        </div>
-                        <div class="col-md-6">
-                            <button class="btn btn-outline-gold w-100" onclick="resetForm()">
-                                <i class="fas fa-redo me-2"></i>Reset Form
-                            </button>
-                        </div>
+                    <div class="template-option" data-template="cover">
+                        🎨 Template Cover
                     </div>
                 </div>
             </div>
 
-            <!-- Preview Panel -->
-            <div class="col-lg-5">
-                <div class="d-flex justify-content-center">
-                    <div class="post-canvas" id="postCanvas">
-                        <div class="post-content" id="postContent">
-                            <div class="post-title" id="previewTitle">Judul Anda Akan Muncul Di Sini</div>
-                            <div class="post-body" id="previewContent">Konten Anda akan ditampilkan di sini. Ketik pada form di sebelah kiri untuk melihat preview secara real-time.</div>
-                            <div class="post-footer" id="previewFooter" style="display: none;"></div>
-                            <div class="watermark">INTI - Interkoneksi Narasi Teknologi Intelektual</div>
-                        </div>
+            <div class="form-group">
+                <label for="title">Judul Post</label>
+                <input type="text" id="title" placeholder="Masukkan judul konten Anda...">
+                
+                <!-- Title Font Styling -->
+                <div class="font-style-controls" id="titleStyles">
+                    <div class="style-btn" data-style="bold" data-target="title">
+                        <strong>B</strong>
                     </div>
+                    <div class="style-btn" data-style="italic" data-target="title">
+                        <em>I</em>
+                    </div>
+                    <div class="style-btn" data-style="underline" data-target="title">
+                        <u>U</u>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Title Font Size -->
+            <div class="form-group">
+                <label>Ukuran Font Judul</label>
+                <div class="size-control">
+                    <input type="range" id="titleFontSize" min="16" max="128" value="22" step="1">
+                    <span class="size-value" id="titleFontSizeValue">22px</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="content">Konten</label>
+                <textarea id="content" placeholder="Tulis konten Anda di sini..."></textarea>
+                
+                <!-- Content Font Styling -->
+                <div class="font-style-controls" id="contentStyles">
+                    <div class="style-btn" data-style="bold" data-target="content">
+                        <strong>B</strong>
+                    </div>
+                    <div class="style-btn" data-style="italic" data-target="content">
+                        <em>I</em>
+                    </div>
+                    <div class="style-btn" data-style="underline" data-target="content">
+                        <u>U</u>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Font Size -->
+            <div class="form-group">
+                <label>Ukuran Font Konten</label>
+                <div class="size-control">
+                    <input type="range" id="contentFontSize" min="10" max="64" value="14" step="1">
+                    <span class="size-value" id="contentFontSizeValue">14px</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="footer">Footer (Opsional)</label>
+                <input type="text" id="footer" placeholder="Footer tambahan...">
+            </div>
+
+            <div class="form-row">
+                <!-- Font Selector -->
+                <div class="form-group">
+                    <label for="fontFamily">Font Family</label>
+                    <select id="fontFamily">
+                        <option value="Merriweather">Merriweather (Serif)</option>
+                        <option value="Inter">Inter (Sans-serif)</option>
+                        <option value="Playfair Display">Playfair Display (Elegant)</option>
+                        <option value="Roboto">Roboto (Clean)</option>
+                        <option value="Open Sans">Open Sans (Modern)</option>
+                    </select>
+                </div>
+
+                <!-- Line Height Control -->
+                <div class="form-group">
+                    <label>Line Spacing</label>
+                    <div class="size-control">
+                        <input type="range" id="lineHeight" min="1.2" max="2.5" step="0.1" value="1.6">
+                        <span class="size-value" id="lineHeightValue">1.6</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Color Palette Selector -->
+            <div class="form-group">
+                <label>Color Palette</label>
+                <div class="color-palette-selector">
+                    <div class="palette-option palette-light" data-palette="light">
+                        Light Mode
+                    </div>
+                    <div class="palette-option palette-dark active" data-palette="dark">
+                        Dark Mode
+                    </div>
+                    <div class="palette-option palette-custom" data-palette="custom">
+                        Custom
+                    </div>
+                </div>
+                <div class="custom-color-inputs" id="customColorInputs">
+                    <div class="color-input-group">
+                        <input type="color" id="bgColor1" value="#667eea">
+                        <label for="bgColor1" style="font-size: 12px; text-transform: none;">BG Start</label>
+                    </div>
+                    <div class="color-input-group">
+                        <input type="color" id="bgColor2" value="#764ba2">
+                        <label for="bgColor2" style="font-size: 12px; text-transform: none;">BG End</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group size-selector">
+                <label for="size">Ukuran Output</label>
+                <select id="size">
+                    <option value="instagram">Instagram Square (1080x1080)</option>
+                    <option value="story">Instagram Story (1080x1920)</option>
+                    <option value="facebook">Facebook Post (1200x630)</option>
+                </select>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-primary" onclick="downloadImage()">Download Gambar HD</button>
+                <button class="btn btn-secondary" onclick="resetForm()">Reset Form</button>
+            </div>
+        </div>
+
+        <div class="preview-panel">
+            <div class="post-canvas" id="postCanvas">
+                <div class="post-content" id="postContent">
+                    <div class="post-title" id="previewTitle">Judul Anda Akan Muncul Di Sini</div>
+                    <div class="post-body" id="previewContent">Konten Anda akan ditampilkan di sini. Ketik pada form di sebelah kiri untuk melihat preview secara real-time.</div>
+                    <div class="post-footer" id="previewFooter"></div>
+                    <div class="watermark">INTI - Interkoneksi Narasi Teknologi Intelektual</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Toast Container -->
-    <div class="toast-container">
-        <div class="toast" role="alert" id="toast">
-            <div class="toast-header gold-bg text-dark">
-                <i class="fas fa-check-circle me-2"></i>
-                <strong class="me-auto">INTI Generator</strong>
-            </div>
-            <div class="toast-body bg-dark text-light" id="toastBody"></div>
-        </div>
-    </div>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <div class="toast" id="toast"></div>
 
     <script>
         let currentTemplate = 'content';
         let currentPalette = 'dark';
         let currentLineHeight = 1.6;
+        let titleStyles = { bold: false, italic: false, underline: false };
+        let contentStyles = { bold: false, italic: false, underline: false };
         let titleFontSize = 22;
         let contentFontSize = 14;
-
-        // Text formatting state
-        let titleFormattedText = '';
-        let contentFormattedText = '';
-        let titleFormatRanges = [];
-        let contentFormatRanges = [];
-
-        // Initialize Bootstrap toast
-        const toastEl = document.getElementById('toast');
-        const toast = new bootstrap.Toast(toastEl);
 
         // Template type selector
         document.querySelectorAll('.template-option').forEach(option => {
@@ -565,126 +645,23 @@
             });
         });
 
-        // Text formatting functionality
+        // Font style controls
         document.querySelectorAll('.style-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const style = this.dataset.style;
                 const target = this.dataset.target;
-                const textarea = document.getElementById(target);
                 
-                applyTextFormatting(textarea, style);
                 this.classList.toggle('active');
+                
+                if (target === 'title') {
+                    titleStyles[style] = !titleStyles[style];
+                    applyFontStyles('previewTitle', titleStyles);
+                } else {
+                    contentStyles[style] = !contentStyles[style];
+                    applyFontStyles('previewContent', contentStyles);
+                }
             });
         });
-
-        function applyTextFormatting(textarea, style) {
-            const start = textarea.selectionStart;
-            const end = textarea.selectionEnd;
-            const selectedText = textarea.value.substring(start, end);
-            
-            if (selectedText.length === 0) {
-                showToast('Silakan pilih teks terlebih dahulu untuk memformat!', 'warning');
-                return;
-            }
-
-            const target = textarea.id;
-            let formatRanges = target === 'title' ? titleFormatRanges : contentFormatRanges;
-            
-            // Create new format range
-            const newRange = {
-                start: start,
-                end: end,
-                style: style,
-                text: selectedText
-            };
-            
-            // Remove overlapping ranges with same style
-            formatRanges = formatRanges.filter(range => 
-                !(range.style === style && 
-                  ((range.start <= start && range.end >= start) || 
-                   (range.start <= end && range.end >= end) ||
-                   (start <= range.start && end >= range.end)))
-            );
-            
-            formatRanges.push(newRange);
-            formatRanges.sort((a, b) => a.start - b.start);
-            
-            if (target === 'title') {
-                titleFormatRanges = formatRanges;
-            } else {
-                contentFormatRanges = formatRanges;
-            }
-            
-            updateFormattedPreview(target);
-        }
-
-        function updateFormattedPreview(target) {
-            const textarea = document.getElementById(target);
-            const previewElement = document.getElementById(target === 'title' ? 'previewTitle' : 'previewContent');
-            const formatRanges = target === 'title' ? titleFormatRanges : contentFormatRanges;
-            
-            let text = textarea.value;
-            let htmlText = '';
-            let lastIndex = 0;
-            
-            // Sort ranges by start position
-            const sortedRanges = [...formatRanges].sort((a, b) => a.start - b.start);
-            
-            for (let range of sortedRanges) {
-                // Add text before the range
-                htmlText += escapeHtml(text.substring(lastIndex, range.start));
-                
-                // Add formatted text
-                let formattedText = escapeHtml(text.substring(range.start, range.end));
-                switch (range.style) {
-                    case 'bold':
-                        formattedText = `<strong>${formattedText}</strong>`;
-                        break;
-                    case 'italic':
-                        formattedText = `<em>${formattedText}</em>`;
-                        break;
-                    case 'underline':
-                        formattedText = `<u>${formattedText}</u>`;
-                        break;
-                }
-                htmlText += formattedText;
-                lastIndex = range.end;
-            }
-            
-            // Add remaining text
-            htmlText += escapeHtml(text.substring(lastIndex));
-            
-            // Update preview with HTML formatting
-            if (htmlText.trim() === '') {
-                htmlText = target === 'title' ? 'Judul Anda Akan Muncul Di Sini' : 'Konten Anda akan ditampilkan di sini. Ketik pada form di sebelah kiri untuk melihat preview secara real-time.';
-            }
-            
-            previewElement.innerHTML = htmlText.replace(/\n/g, '<br>');
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function clearTitleFormatting() {
-            titleFormatRanges = [];
-            document.querySelectorAll('.style-btn[data-target="title"]').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            updateFormattedPreview('title');
-            showToast('Format judul berhasil dihapus!', 'success');
-        }
-
-        function clearContentFormatting() {
-            contentFormatRanges = [];
-            document.querySelectorAll('.style-btn[data-target="content"]').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            updateFormattedPreview('content');
-            showToast('Format konten berhasil dihapus!', 'success');
-        }
 
         // Font size controls
         document.getElementById('titleFontSize').addEventListener('input', function() {
@@ -709,9 +686,9 @@
                 
                 const customInputs = document.getElementById('customColorInputs');
                 if (currentPalette === 'custom') {
-                    customInputs.classList.remove('d-none');
+                    customInputs.classList.add('show');
                 } else {
-                    customInputs.classList.add('d-none');
+                    customInputs.classList.remove('show');
                 }
             });
         });
@@ -735,25 +712,14 @@
         // Size selector
         document.getElementById('size').addEventListener('change', updateCanvasScale);
 
-        // Real-time preview updates
-        document.getElementById('title').addEventListener('input', function() {
-            updateFormattedPreview('title');
-        });
-
-        document.getElementById('content').addEventListener('input', function() {
-            updateFormattedPreview('content');
-        });
-
-        document.getElementById('footer').addEventListener('input', function() {
-            const footer = this.value;
-            const footerElement = document.getElementById('previewFooter');
-            if (footer.trim()) {
-                footerElement.textContent = footer;
-                footerElement.style.display = 'block';
-            } else {
-                footerElement.style.display = 'none';
-            }
-        });
+        function applyFontStyles(elementId, styles) {
+            const element = document.getElementById(elementId);
+            element.classList.remove('bold', 'italic', 'underline');
+            
+            if (styles.bold) element.classList.add('bold');
+            if (styles.italic) element.classList.add('italic');
+            if (styles.underline) element.classList.add('underline');
+        }
 
         function updateTemplate() {
             const postContent = document.getElementById('postContent');
@@ -800,22 +766,35 @@
             }
         }
 
-        function showToast(message, type = 'success') {
-            const toastBody = document.getElementById('toastBody');
-            toastBody.textContent = message;
-            
-            const toastHeader = toastEl.querySelector('.toast-header');
-            const icon = toastHeader.querySelector('i');
-            
-            if (type === 'success') {
-                icon.className = 'fas fa-check-circle me-2';
-            } else if (type === 'warning') {
-                icon.className = 'fas fa-exclamation-triangle me-2';
-            } else if (type === 'error') {
-                icon.className = 'fas fa-times-circle me-2';
+        // Real-time preview updates
+        document.getElementById('title').addEventListener('input', function() {
+            const title = this.value || 'Judul Anda Akan Muncul Di Sini';
+            document.getElementById('previewTitle').textContent = title;
+        });
+
+        document.getElementById('content').addEventListener('input', function() {
+            const content = this.value || 'Konten Anda akan ditampilkan di sini. Ketik pada form di sebelah kiri untuk melihat preview secara real-time.';
+            document.getElementById('previewContent').textContent = content;
+        });
+
+        document.getElementById('footer').addEventListener('input', function() {
+            const footer = this.value;
+            const footerElement = document.getElementById('previewFooter');
+            if (footer.trim()) {
+                footerElement.textContent = footer;
+                footerElement.style.display = 'block';
+            } else {
+                footerElement.style.display = 'none';
             }
-            
-            toast.show();
+        });
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
         }
 
         function downloadImage() {
@@ -909,7 +888,17 @@
             const footer = document.getElementById('footer').value;
             const fontFamily = document.getElementById('fontFamily').value;
             
-            // Draw title with formatting
+            // Function to apply font styles
+            function getFontString(baseSize, styles, family) {
+                let fontStr = '';
+                if (styles.italic) fontStr += 'italic ';
+                if (styles.bold) fontStr += 'bold ';
+                fontStr += `${baseSize}px '${family}', serif`;
+                return fontStr;
+            }
+            
+            // Set up font and styles for title
+            ctx.font = getFontString(baseTitleSize, titleStyles, fontFamily);
             ctx.fillStyle = textColor;
             ctx.textAlign = 'center';
             
@@ -921,24 +910,36 @@
                 ctx.shadowOffsetY = 2 * scaleFactor;
             }
             
-            // Calculate title positioning
+            // Calculate title positioning and wrapping
             const maxTitleWidth = width - (basePadding * 2);
+            const titleLines = smartWrapText(ctx, title, maxTitleWidth);
+            
             let currentY;
+            const titleLineHeight = baseTitleSize * (currentTemplate === 'cover' ? 1.3 : 1.2);
+            const titleTotalHeight = titleLines.length * titleLineHeight;
             
             if (currentTemplate === 'cover') {
+                // Calculate total content height for centering
                 const contentLines = content.split('\n');
                 const estimatedContentHeight = contentLines.length * baseContentSize * currentLineHeight;
                 const footerHeight = footer ? baseFooterSize * 1.5 : 0;
-                const titleEstimatedHeight = Math.ceil(title.length / 30) * baseTitleSize * 1.3;
-                const totalContentHeight = titleEstimatedHeight + estimatedContentHeight + footerHeight + (basePadding * 0.5);
+                const totalContentHeight = titleTotalHeight + estimatedContentHeight + footerHeight + (basePadding * 0.5);
                 
                 currentY = Math.max((height - totalContentHeight) / 2 + baseTitleSize, basePadding + baseTitleSize);
             } else {
                 currentY = basePadding + baseTitleSize;
             }
             
-            // Draw title with text formatting
-            currentY = drawFormattedText(ctx, title, titleFormatRanges, width / 2, currentY, maxTitleWidth, baseTitleSize, fontFamily, 'center', currentTemplate === 'cover' ? 1.3 : 1.2);
+            // Draw title lines
+            titleLines.forEach((line, index) => {
+                if (titleStyles.underline) {
+                    const lineWidth = ctx.measureText(line).width;
+                    const lineY = currentY + baseTitleSize * 0.1;
+                    ctx.fillRect((width - lineWidth) / 2, lineY, lineWidth, 2 * scaleFactor);
+                }
+                ctx.fillText(line, width / 2, currentY);
+                currentY += titleLineHeight;
+            });
             
             // Reset shadow and set up content style
             ctx.shadowColor = 'transparent';
@@ -946,6 +947,7 @@
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
             
+            ctx.font = getFontString(baseContentSize, contentStyles, fontFamily);
             ctx.fillStyle = currentPalette === 'light' ? '#495057' : '#f5f5f5';
             
             if (currentPalette !== 'light') {
@@ -960,11 +962,34 @@
             const maxContentWidth = width - (basePadding * 2);
             const maxContentHeight = height - contentStartY - basePadding - (footer ? baseFooterSize * 2.5 : 0) - baseWatermarkSize * 3;
             
-            const contentX = currentTemplate === 'cover' ? width / 2 : basePadding;
-            const contentAlign = currentTemplate === 'cover' ? 'center' : 'left';
+            currentY = contentStartY;
             
-            // Draw content with formatting
-            drawFormattedText(ctx, content, contentFormatRanges, contentX, contentStartY, maxContentWidth, baseContentSize, fontFamily, contentAlign, currentLineHeight, maxContentHeight);
+            // Draw content with proper alignment
+            ctx.textAlign = currentTemplate === 'cover' ? 'center' : 'left';
+            const contentParagraphs = content.split('\n');
+            
+            for (let paragraph of contentParagraphs) {
+                if (!paragraph.trim()) {
+                    currentY += baseContentSize * currentLineHeight * 0.8;
+                    continue;
+                }
+                
+                const lines = smartWrapText(ctx, paragraph, maxContentWidth);
+                for (let line of lines) {
+                    if (currentY + baseContentSize > contentStartY + maxContentHeight) break;
+                    const xPos = currentTemplate === 'cover' ? width / 2 : basePadding;
+                    
+                    if (contentStyles.underline) {
+                        const lineWidth = ctx.measureText(line).width;
+                        const underlineY = currentY + baseContentSize * 0.1;
+                        const underlineX = currentTemplate === 'cover' ? (width - lineWidth) / 2 : basePadding;
+                        ctx.fillRect(underlineX, underlineY, lineWidth, 2 * scaleFactor);
+                    }
+                    
+                    ctx.fillText(line, xPos, currentY);
+                    currentY += baseContentSize * currentLineHeight;
+                }
+            }
             
             // Reset shadow for footer and watermark
             ctx.shadowColor = 'transparent';
@@ -998,96 +1023,12 @@
                 link.download = filename;
                 link.click();
                 URL.revokeObjectURL(url);
-                showToast('Gambar HD berhasil didownload!', 'success');
-            }, 'image/png', 1.0);
-        }
-
-        function drawFormattedText(ctx, text, formatRanges, x, startY, maxWidth, fontSize, fontFamily, align, lineHeight, maxHeight = null) {
-            let currentY = startY;
-            const paragraphs = text.split('\n');
-            
-            for (let paragraph of paragraphs) {
-                if (!paragraph.trim()) {
-                    currentY += fontSize * lineHeight * 0.8;
-                    continue;
-                }
-                
-                // Get format ranges for this paragraph
-                const paragraphStart = text.indexOf(paragraph);
-                const paragraphEnd = paragraphStart + paragraph.length;
-                const relevantRanges = formatRanges.filter(range => 
-                    range.start < paragraphEnd && range.end > paragraphStart
-                );
-                
-                // Wrap text considering formatting
-                const lines = smartWrapText(ctx, paragraph, maxWidth, fontSize, fontFamily);
-                
-                for (let line of lines) {
-                    if (maxHeight && currentY + fontSize > startY + maxHeight) break;
-                    
-                    // Draw line with formatting
-                    drawFormattedLine(ctx, line, relevantRanges, x, currentY, fontSize, fontFamily, align, paragraphStart);
-                    currentY += fontSize * lineHeight;
-                }
-            }
-            
-            return currentY;
-        }
-
-        function drawFormattedLine(ctx, line, formatRanges, x, y, fontSize, fontFamily, align, paragraphOffset) {
-            ctx.textAlign = align;
-            
-            let currentX = x;
-            if (align === 'center') {
-                const lineWidth = ctx.measureText(line).width;
-                currentX = x - lineWidth / 2;
-            }
-            
-            let charIndex = 0;
-            
-            for (let i = 0; i < line.length; i++) {
-                const char = line[i];
-                const globalIndex = paragraphOffset + charIndex;
-                
-                // Check if this character has formatting
-                let isBold = false, isItalic = false, isUnderline = false;
-                
-                formatRanges.forEach(range => {
-                    if (globalIndex >= range.start && globalIndex < range.end) {
-                        if (range.style === 'bold') isBold = true;
-                        if (range.style === 'italic') isItalic = true;
-                        if (range.style === 'underline') isUnderline = true;
-                    }
-                });
-                
-                // Set font with formatting
-                let fontStyle = '';
-                if (isItalic) fontStyle += 'italic ';
-                if (isBold) fontStyle += 'bold ';
-                fontStyle += `${fontSize}px '${fontFamily}', serif`;
-                
-                ctx.font = fontStyle;
-                
-                // Draw character
-                const charWidth = ctx.measureText(char).width;
-                
-                if (isUnderline) {
-                    const underlineY = y + fontSize * 0.1;
-                    ctx.fillRect(currentX, underlineY, charWidth, 2);
-                }
-                
-                ctx.fillText(char, currentX, y);
-                currentX += charWidth;
-                charIndex++;
-            }
+                showToast('Gambar HD berhasil didownload!');
+            }, 'image/png', 1.0); // Maximum quality
         }
         
         // Improved text wrapping function
-        function smartWrapText(ctx, text, maxWidth, fontSize = null, fontFamily = null) {
-            if (fontSize && fontFamily) {
-                ctx.font = `${fontSize}px '${fontFamily}', serif`;
-            }
-            
+        function smartWrapText(ctx, text, maxWidth) {
             const words = text.split(' ');
             const lines = [];
             let currentLine = '';
@@ -1126,13 +1067,9 @@
             document.getElementById('contentFontSize').value = '14';
             document.getElementById('contentFontSizeValue').textContent = '14px';
             
-            // Reset formatting
-            titleFormatRanges = [];
-            contentFormatRanges = [];
-            
             // Reset preview
-            document.getElementById('previewTitle').innerHTML = 'Judul Anda Akan Muncul Di Sini';
-            document.getElementById('previewContent').innerHTML = 'Konten Anda akan ditampilkan di sini. Ketik pada form di sebelah kiri untuk melihat preview secara real-time.';
+            document.getElementById('previewTitle').textContent = 'Judul Anda Akan Muncul Di Sini';
+            document.getElementById('previewContent').textContent = 'Konten Anda akan ditampilkan di sini. Ketik pada form di sebelah kiri untuk melihat preview secara real-time.';
             document.getElementById('previewFooter').style.display = 'none';
             document.getElementById('previewContent').style.lineHeight = '1.6';
             document.getElementById('postContent').style.fontFamily = "'Merriweather', serif";
@@ -1143,6 +1080,8 @@
             
             // Reset font styles
             document.querySelectorAll('.style-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('previewTitle').classList.remove('bold', 'italic', 'underline');
+            document.getElementById('previewContent').classList.remove('bold', 'italic', 'underline');
             
             // Reset template and palette
             document.querySelectorAll('.template-option').forEach(opt => opt.classList.remove('active'));
@@ -1154,48 +1093,17 @@
             currentTemplate = 'content';
             currentPalette = 'dark';
             currentLineHeight = 1.6;
+            titleStyles = { bold: false, italic: false, underline: false };
+            contentStyles = { bold: false, italic: false, underline: false };
             titleFontSize = 22;
             contentFontSize = 14;
             
             updateTemplate();
             updateColorPalette();
             updateCanvasScale();
-            document.getElementById('customColorInputs').classList.add('d-none');
+            document.getElementById('customColorInputs').classList.remove('show');
             
-            showToast('Form berhasil direset!', 'success');
-        }
-
-        // Add text selection highlighting for better UX
-        document.getElementById('title').addEventListener('mouseup', handleTextSelection);
-        document.getElementById('content').addEventListener('mouseup', handleTextSelection);
-        document.getElementById('title').addEventListener('keyup', handleTextSelection);
-        document.getElementById('content').addEventListener('keyup', handleTextSelection);
-
-        function handleTextSelection(e) {
-            const textarea = e.target;
-            const start = textarea.selectionStart;
-            const end = textarea.selectionEnd;
-            
-            // Update active state of style buttons based on selection
-            if (start !== end) {
-                const target = textarea.id;
-                const formatRanges = target === 'title' ? titleFormatRanges : contentFormatRanges;
-                
-                // Check which styles apply to current selection
-                const styles = { bold: false, italic: false, underline: false };
-                
-                formatRanges.forEach(range => {
-                    if (range.start <= start && range.end >= end) {
-                        styles[range.style] = true;
-                    }
-                });
-                
-                // Update button states
-                document.querySelectorAll(`.style-btn[data-target="${target}"]`).forEach(btn => {
-                    const style = btn.dataset.style;
-                    btn.classList.toggle('active', styles[style]);
-                });
-            }
+            showToast('Form berhasil direset!');
         }
 
         // Initialize default values
@@ -1204,10 +1112,6 @@
         document.getElementById('postContent').style.fontFamily = "'Merriweather', serif";
         document.getElementById('previewContent').style.lineHeight = currentLineHeight;
         updateCanvasScale();
-        
-        // Initialize formatted preview
-        updateFormattedPreview('title');
-        updateFormattedPreview('content');
     </script>
 </body>
 </html>
