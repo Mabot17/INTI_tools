@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>INTI - AutoCanvas — Generate Content → Canvas → Image</title>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+  <style>
+    :root{--accent:#0ea5a4;--muted:#6b7280}
+    body{font-family:Inter,ui-sans-serif,system-ui,Helvetica,Arial;margin:0;background:#0f172a;color:#e6eef6}
+    header{background:linear-gradient(90deg,#071021, #0b1220);padding:18px 20px;display:flex;gap:16px;align-items:center}
+    header h1{margin:0;font-size:18px}
+    .container{padding:18px;display:grid;grid-template-columns:360px 1fr;gap:18px}
+    .card{background:#071229;border:1px solid rgba(255,255,255,0.03);padding:14px;border-radius:10px}
+    label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+    input[type=text],select,textarea{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+    button{background:var(--accent);color:#013;border:0;padding:8px 10px;border-radius:8px;cursor:pointer}
+    .small{font-size:12px;color:var(--muted)}
+    #canvasArea{min-height:80vh;padding:10px;display:flex;flex-wrap:wrap;gap:12px}
+    .canvasCard{width:360px;background:#082033;border-radius:10px;padding:10px;position:relative}
+    .canvasPreview{background:#fff;border-radius:6px;overflow:hidden;width:100%;height:360px;display:flex;align-items:center;justify-content:center}
+    .canvasContent{padding:18px;box-sizing:border-box;width:100%;height:100%;background:white;color:#06121a;}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .muted{color:var(--muted)}
+    .toolbar{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+    .editorControls{display:flex;gap:8px;align-items:center}
+    .canvasMeta{display:flex;gap:8px;align-items:center;justify-content:space-between}
+    .rightSmall{font-size:12px}
+    .btnGhost{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:6px 8px;border-radius:8px;color:var(--muted)}
+    .flex{display:flex;gap:8px}
+    .badge{background:rgba(255,255,255,0.03);padding:6px;border-radius:6px;font-size:12px}
+    footer{padding:12px;text-align:center;color:var(--muted)}
+    /* canvas sizes helper (not the exported physical size) */
+    .size-1080x1080 .canvasPreview{height:360px}
+    .size-1080x1920 .canvasPreview{height:640px}
+    .size-1200x630 .canvasPreview{height:210px}
+    /* contenteditable styling inside preview */
+    .canvasContent [contenteditable]{outline:none}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>AutoCanvas — Generate konten menjadi gambar (Editor)</h1>
+    <div style="margin-left:8px;color:var(--muted);font-size:13px">Masukan URL / Upload .md/.txt — otomatis pecah & buat beberapa canvas</div>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div>
+          <label>URL halaman HTML (contoh: https://www.intisatu.com/...)</label>
+          <input id="inputUrl" type="text" placeholder="Tempel URL atau kosongkan untuk paste/manual" />
+        </div>
+
+        <div>
+          <label>Atau upload file (.md / .txt)</label>
+          <input id="fileInput" type="file" accept=".md,.txt,text/plain" />
+          <div class="small muted">Jika halaman memiliki CORS, gunakan upload atau paste. Saya mencoba fetch — tapi browser kadang rewel (iya, browser itu biology-nya CORS).</div>
+        </div>
+
+        <div>
+          <label>Atau paste langsung HTML / Markdown</label>
+          <textarea id="pasteArea" rows="6" placeholder="Tempel HTML atau Markdown di sini..." ></textarea>
+        </div>
+
+        <div>
+          <label>Ukuran output gambar</label>
+          <select id="sizeSelect">
+            <option value="1080x1080">Instagram Square — 1080 × 1080</option>
+            <option value="1080x1920">Instagram Story — 1080 × 1920</option>
+            <option value="1200x630">Facebook Post — 1200 × 630</option>
+          </select>
+        </div>
+
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+          <button id="btnGenerate">Generate Canvas</button>
+          <button id="btnClear" class="btnGhost">Bersihkan</button>
+        </div>
+
+        <hr />
+        <div>
+          <div class="small muted">Kontrol cepat editor canvas:</div>
+          <div class="small">Pilih canvas → gunakan toolbar di tiap canvas → klik "Export" atau "Export Semua" untuk menyimpan gambar.</div>
+        </div>
+
+        <hr />
+        <div>
+          <label>Fitur tambahan (ceklist ide)</label>
+          <div class="small">
+            - Edit langsung pada tiap canvas (bold/italic/ukuran/align).
+            <br>- Batch export (ZIP) & single export.
+            <br>- Parsers: H1/H2/P/table → memetakan section jadi canvas.
+            <br>- Fallback: jika fetch gagal, gunakan paste/upload.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="toolbar">
+          <div class="badge">Canvas dibuat otomatis berdasarkan H2 / p / table</div>
+          <div style="margin-left:auto" class="small muted" id="status">Ready</div>
+        </div>
+
+        <div id="canvasArea" class="size-1080x1080"></div>
+
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button id="exportAll">Export Semua (ZIP)</button>
+          <button id="downloadAllSingle" class="btnGhost">Download Semua Sebagai Banyak File</button>
+        </div>
+      </div>
+
+      <footer class="card" style="margin-top:12px">
+        <div style="font-size:13px">AutoCanvas — v1.0 — dibuat untuk Mabot. (Ya, saya panggil kamu, Mabot.)</div>
+        <div class="small muted" style="margin-top:6px">Catatan: jika fetch URL gagal karena CORS, rekomendasi: 1) gunakan upload .md/.txt atau 2) salin & tempel HTML/Markdown ke area paste.</div>
+      </footer>
+    </div>
+  </div>
+
+
+  <!-- Libraries (CDN) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script>
+    // Helper: safe text -> DOM
+    function parseHTML(str){
+      return new DOMParser().parseFromString(str, 'text/html');
+    }
+
+    const inputUrl = document.getElementById('inputUrl');
+    const fileInput = document.getElementById('fileInput');
+    const pasteArea = document.getElementById('pasteArea');
+    const btnGenerate = document.getElementById('btnGenerate');
+    const btnClear = document.getElementById('btnClear');
+    const canvasArea = document.getElementById('canvasArea');
+    const status = document.getElementById('status');
+    const sizeSelect = document.getElementById('sizeSelect');
+    const exportAll = document.getElementById('exportAll');
+    const downloadAllSingle = document.getElementById('downloadAllSingle');
+
+    function setStatus(t){ status.textContent = t; }
+
+    btnClear.addEventListener('click', ()=>{
+      canvasArea.innerHTML = '';
+      setStatus('Cleared');
+    });
+
+    sizeSelect.addEventListener('change', ()=>{
+      const val = sizeSelect.value;
+      canvasArea.className = '';
+      canvasArea.classList.add('size-'+val.replace('x','x'));
+    });
+
+    // Parse uploaded file
+    fileInput.addEventListener('change', async (ev)=>{
+      const f = ev.target.files[0];
+      if(!f) return;
+      const txt = await f.text();
+      pasteArea.value = txt;
+      setStatus('File loaded to paste area');
+    });
+
+    // MAIN: Generate
+    btnGenerate.addEventListener('click', async ()=>{
+      setStatus('Processing...');
+      canvasArea.innerHTML = '';
+
+      let html = '';
+      const url = inputUrl.value.trim();
+
+      // 1) If user pasted, prefer that
+      if(pasteArea.value.trim()){
+        html = pasteArea.value.trim();
+        // If looks like markdown (no tags), convert
+        if(!/<[a-z][\s\S]*>/i.test(html)){
+          html = marked.parse(html);
+        }
+        processHTML(html);
+        return;
+      }
+
+      // 2) If URL provided, try fetch (may fail with CORS)
+      if(url){
+        try{
+          const res = await fetch(url, {mode:'cors'});
+          if(!res.ok) throw new Error('HTTP '+res.status);
+          const text = await res.text();
+          processHTML(text);
+          return;
+        }catch(err){
+          // fallback: try cors proxy (user can change/remove) — gentle warning
+          console.warn('Fetch failed:', err);
+          setStatus('Fetch gagal (CORS?). Menggunakan fallback: ambil body jika tersedia atau gunakan paste/upload.');
+          // attempt to extract from a common meta tag (some sites include og:description) — otherwise ask user paste
+          // But per instruction, do not ask — just show message and stop
+          return;
+        }
+      }
+
+      setStatus('Tidak ada input. Tempel HTML/MD atau masukkan URL.');
+    });
+
+    // Heuristic parser & chunker
+    function processHTML(raw){
+      setStatus('Parsing content...');
+      const doc = parseHTML(raw);
+
+      // Try to find the article/main container
+      let main = doc.querySelector('article') || doc.querySelector('main') || doc.querySelector('#content') || doc.body;
+
+      // Collect meaningful blocks: h1/h2/h3/p/table/ul/ol
+      const blocks = [];
+      const walker = document.createTreeWalker(main, NodeFilter.SHOW_ELEMENT, null);
+      let node;
+      while(node = walker.nextNode()){
+        const tag = node.tagName.toLowerCase();
+        if(['h1','h2','h3','p','table','blockquote','ul','ol','pre'].includes(tag)){
+          const text = node.innerText.trim();
+          if(text) blocks.push({tag, text, html: node.outerHTML});
+        }
+      }
+
+      // If no blocks found, fallback to body text split by paragraphs
+      if(blocks.length===0){
+        const text = main.innerText||'';
+        const ps = text.split(/\n{2,}/).filter(s=>s.trim());
+        ps.forEach(p=>blocks.push({tag:'p', text:p, html:'<p>'+p+'</p>'}));
+      }
+
+      // Now chunk into canvases: group by H2 or every N paragraphs (approx 4-6 canvases)
+      const canvases = [];
+      let current = {title:'', html:''};
+      blocks.forEach(b=>{
+        if(b.tag==='h1' || b.tag==='h2'){
+          // start new canvas when heading encountered if current has content
+          if(current.html){ canvases.push({...current}); current={title:b.text, html:''}; }
+          else { current.title = b.text; }
+        } else {
+          current.html += b.html;
+        }
+      });
+      if(current.html) canvases.push(current);
+
+      // if still too many or too few, rebalance: aim 3-6 canvases
+      if(canvases.length<2){
+        // split by paragraphs into chunks
+        const paras = [];
+        blocks.filter(b=>b.tag==='p' || b.tag==='pre' || b.tag==='blockquote').forEach(b=>paras.push(b.html));
+        const target = Math.min(5, Math.max(1, Math.ceil(paras.length/5)));
+        for(let i=0;i<target;i++){
+          const slice = paras.slice(i*5,(i+1)*5).join('');
+          if(slice) canvases.push({title:'', html:slice});
+        }
+      }
+
+      // Safety: limit to 15 canvases
+      const limited = canvases.slice(0,15);
+
+      // Render canvas previews
+      limited.forEach((c, idx)=>createCanvasCard(c, idx+1));
+
+      setStatus(`Selesai — ${limited.length} canvas dibuat`);
+    }
+
+    // Create a canvas editor card
+    function createCanvasCard(data, index){
+      const wrapper = document.createElement('div');
+      wrapper.className = 'canvasCard';
+
+      const meta = document.createElement('div'); meta.className='canvasMeta';
+      const title = document.createElement('div'); title.innerHTML = `<strong>#${index}</strong> ${data.title||''}`;
+      const right = document.createElement('div'); right.innerHTML = `<span class="rightSmall muted">Preview</span>`;
+      meta.appendChild(title); meta.appendChild(right);
+
+      const preview = document.createElement('div'); preview.className='canvasPreview';
+      // Determine preview inner size class by selected size
+      const contentBox = document.createElement('div'); contentBox.className='canvasContent';
+      // create editable content area
+      const editable = document.createElement('div');
+      editable.innerHTML = data.html;
+      editable.setAttribute('contenteditable','true');
+      editable.style.fontFamily = 'Georgia, serif';
+      editable.style.fontSize = '20px';
+      editable.style.lineHeight = '1.4';
+      editable.style.color = '#06121a';
+      editable.style.minHeight = '100%';
+      // ensure images scale
+      editable.querySelectorAll && editable.querySelectorAll('img').forEach(img=>{ img.style.maxWidth='100%'; img.style.height='auto'; });
+
+      contentBox.appendChild(editable);
+      preview.appendChild(contentBox);
+
+      // editor control bar
+      const ctrl = document.createElement('div'); ctrl.className='controls';
+      // Bold, Italic, Size, Align, Bg Color, Export
+      const btnB = document.createElement('button'); btnB.textContent='B'; btnB.title='Bold'; btnB.onclick = ()=>document.execCommand('bold');
+      const btnI = document.createElement('button'); btnI.textContent='I'; btnI.title='Italic'; btnI.onclick = ()=>document.execCommand('italic');
+      const btnU = document.createElement('button'); btnU.textContent='U'; btnU.title='Underline'; btnU.onclick = ()=>document.execCommand('underline');
+      const sizeSel = document.createElement('select'); [14,16,18,20,24,30,36].forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s+' px'; if(s===20)o.selected=true; sizeSel.appendChild(o); });
+      sizeSel.onchange = ()=>{ editable.style.fontSize = sizeSel.value+'px'; };
+      const alignSel = document.createElement('select'); ['left','center','right','justify'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; alignSel.appendChild(o); });
+      alignSel.onchange = ()=>{ editable.style.textAlign = alignSel.value; };
+
+      const bgBtn = document.createElement('input'); bgBtn.type='color'; bgBtn.title='Background'; bgBtn.oninput = ()=>{ contentBox.style.background = bgBtn.value; if(isDark(bgBtn.value)) contentBox.style.color = '#fff'; else contentBox.style.color = '#06121a'; };
+
+      const exportBtn = document.createElement('button'); exportBtn.textContent='Export'; exportBtn.onclick = ()=>exportCanvasImage(contentBox, data.title||('canvas-'+index));
+
+      ctrl.appendChild(btnB); ctrl.appendChild(btnI); ctrl.appendChild(btnU); ctrl.appendChild(sizeSel); ctrl.appendChild(alignSel); ctrl.appendChild(bgBtn); ctrl.appendChild(exportBtn);
+
+      // allow dragging images in
+      contentBox.ondrop = (e)=>{
+        e.preventDefault();
+        const f = e.dataTransfer.files && e.dataTransfer.files[0];
+        if(f && f.type.startsWith('image/')){
+          const reader = new FileReader();
+          reader.onload = ()=>{ const img=document.createElement('img'); img.src = reader.result; img.style.maxWidth='100%'; editable.appendChild(img); };
+          reader.readAsDataURL(f);
+        }
+      };
+      contentBox.ondragover = (e)=>e.preventDefault();
+
+      wrapper.appendChild(meta);
+      wrapper.appendChild(preview);
+      wrapper.appendChild(ctrl);
+
+      // append to area
+      canvasArea.appendChild(wrapper);
+
+      // small hack: set wrapper class for size preview
+      const size = sizeSelect.value; // update previews when changed
+      canvasArea.className = 'size-'+size.replace('x','x');
+    }
+
+    function isDark(hex){
+      // hex like #rrggbb
+      if(!hex) return false;
+      const c = hex.replace('#','');
+      const r=parseInt(c.substr(0,2),16), g=parseInt(c.substr(2,2),16), b=parseInt(c.substr(4,2),16);
+      const luminance = 0.2126*r + 0.7152*g + 0.0722*b; return luminance < 128;
+    }
+
+    // Export single canvas as image (use html2canvas)
+    async function exportCanvasImage(domEl, filename){
+      setStatus('Rendering image...');
+      // determine pixel size
+      const size = sizeSelect.value.split('x').map(x=>parseInt(x,10));
+      const width = size[0], height = size[1];
+      // create a temp container with exact pixel size
+      const temp = document.createElement('div');
+      temp.style.width = width+'px';
+      temp.style.height = height+'px';
+      temp.style.position = 'fixed';
+      temp.style.left = '-9999px';
+      temp.style.background = domEl.style.background || '#fff';
+      // clone content
+      const clone = domEl.cloneNode(true);
+      // scale content to fit width: we will set clone to 1080 width for consistent rendering
+      clone.style.boxSizing = 'border-box';
+      clone.style.width = '100%';
+      clone.style.height = '100%';
+      clone.style.padding = getComputedStyle(domEl).padding;
+      temp.appendChild(clone);
+      document.body.appendChild(temp);
+
+      try{
+        const canvas = await html2canvas(clone, {width: width, height: height, scale: 1, useCORS:true});
+        const data = canvas.toDataURL('image/png');
+        downloadURI(data, `${sanitizeFilename(filename)}.png`);
+        setStatus('Selesai: gambar diunduh');
+      }catch(err){
+        console.error(err);
+        setStatus('Gagal render. Coba export satu-satu atau gunakan browser lain.');
+      }finally{
+        temp.remove();
+      }
+    }
+
+    function sanitizeFilename(n){ return n.replace(/[^a-z0-9-_\.]/gi,'_').substring(0,120); }
+    function downloadURI(uri, name){ const a=document.createElement('a'); a.href=uri; a.download=name; document.body.appendChild(a); a.click(); a.remove(); }
+
+    // Export all canvases into ZIP
+    exportAll.addEventListener('click', async ()=>{
+      setStatus('Export semua → membuat ZIP...');
+      const zip = new JSZip();
+      const cards = Array.from(canvasArea.querySelectorAll('.canvasCard'));
+      for(let i=0;i<cards.length;i++){
+        const c = cards[i];
+        const contentBox = c.querySelector('.canvasContent');
+        try{
+          const size = sizeSelect.value.split('x').map(x=>parseInt(x,10));
+          const canvas = await html2canvas(contentBox, {width:size[0],height:size[1],scale:1,useCORS:true});
+          const data = canvas.toDataURL('image/png');
+          const b = data.split(',')[1];
+          zip.file(`canvas_${i+1}.png`, b, {base64:true});
+        }catch(err){ console.warn('error export', err); }
+      }
+      const blob = await zip.generateAsync({type:'blob'});
+      const url = URL.createObjectURL(blob);
+      downloadURI(url, 'autocanvas_export.zip');
+      URL.revokeObjectURL(url);
+      setStatus('ZIP dibuat & diunduh');
+    });
+
+    downloadAllSingle.addEventListener('click', async ()=>{
+      setStatus('Mengunduh semua sebagai file terpisah...');
+      const cards = Array.from(canvasArea.querySelectorAll('.canvasCard'));
+      for(let i=0;i<cards.length;i++){
+        const c = cards[i];
+        const contentBox = c.querySelector('.canvasContent');
+        try{
+          const size = sizeSelect.value.split('x').map(x=>parseInt(x,10));
+          const canvas = await html2canvas(contentBox, {width:size[0],height:size[1],scale:1,useCORS:true});
+          const data = canvas.toDataURL('image/png');
+          downloadURI(data, `canvas_${i+1}.png`);
+        }catch(err){ console.warn('error export', err); }
+      }
+      setStatus('Selesai unduh semua');
+    });
+
+    // small UX: when pressing Enter in URL field, generate
+    inputUrl.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ btnGenerate.click(); }});
+  </script>
+</body>
+</html>

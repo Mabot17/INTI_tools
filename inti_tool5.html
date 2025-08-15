@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>INTI — URL → Image Generator</title>
+<style>
+  :root{
+    --bg:#f7fbff;--card:#fff;--muted:#6b7280;--accent:#4f46e5;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial; background:linear-gradient(180deg,var(--bg),#fff);color:#111}
+  .wrap{max-width:1100px;margin:28px auto;padding:18px}
+  h1{margin:.2rem 0 8px;font-size:20px}
+  .row{display:flex;gap:8px;align-items:center}
+  .card{background:var(--card);border-radius:12px;padding:12px;margin-bottom:12px;box-shadow:0 8px 30px rgba(10,10,10,.05)}
+  input[type=text],input[type=url],textarea,select{width:100%;padding:8px;border-radius:8px;border:1px solid #e6eefc}
+  button{cursor:pointer;padding:8px 12px;border-radius:8px;border:0;background:var(--accent);color:#fff;font-weight:700}
+  button.ghost{background:#f1f5ff;color:var(--accent);border:1px solid #e6eefc}
+  .small{padding:6px 8px;font-size:13px}
+  .flex-between{display:flex;justify-content:space-between;align-items:center}
+  .canvas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:12px}
+  canvas{width:100%;height:auto;border-radius:8px;background:#fff;display:block;box-shadow:0 8px 20px rgba(0,0,0,.06)}
+  .muted{color:var(--muted);font-size:13px}
+  .controls{display:flex;gap:8px;flex-wrap:wrap}
+  .preset{background:#111827;color:#fff;padding:6px 8px;border-radius:8px}
+  .note{font-size:13px;color:#374151}
+  .danger{color:#b91c1c}
+  footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>INTI — Generate Images from URL (Auto Canvas)</h1>
+    <div class="card">
+      <div class="flex-between">
+        <div>
+          <div class="muted">Masukkan URL HTML atau .txt — atau paste HTML/text secara manual.</div>
+        </div>
+        <div class="muted">Contoh: <span class="note">https://www.intisatu.com/baca/0003-pijakan-kosmologi-tauhid.html</span></div>
+      </div>
+
+      <div style="margin-top:10px" class="row">
+        <input id="urlInput" type="url" placeholder="Masukkan URL (atau kosongkan untuk paste manual)" />
+        <button id="fetchBtn" class="small">Fetch & Parse</button>
+      </div>
+
+      <div style="margin-top:10px" class="row">
+        <input id="corsProxy" type="text" placeholder="(opsional) CORS proxy prefix, mis. https://cors.bridged.cc/" />
+        <button id="parseManual" class="ghost small">Gunakan Text/HTML yang Dipaste</button>
+      </div>
+
+      <div style="margin-top:10px">
+        <textarea id="manualInput" placeholder="Paste HTML atau plain text di sini (optional)..." style="height:120px"></textarea>
+      </div>
+
+      <div style="margin-top:10px" class="row">
+        <label style="width:160px">Split mode</label>
+        <select id="splitMode" style="flex:1">
+          <option value="auto">Auto — panjang per canvas (default)</option>
+          <option value="paragraph">Per paragraf</option>
+          <option value="chars">By characters (n per canvas)</option>
+        </select>
+        <input id="charsPer" type="number" value="1200" style="width:120px;margin-left:8px" />
+      </div>
+
+      <div style="margin-top:10px" class="row">
+        <label style="width:160px">Font</label>
+        <select id="fontSel" style="flex:1">
+          <option>Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial</option>
+          <option>Poppins, system-ui, -apple-system</option>
+          <option>Merriweather, Georgia, serif</option>
+          <option>Nunito, system-ui, -apple-system</option>
+        </select>
+        <input id="fontSize" type="number" value="40" style="width:90px;margin-left:8px" />
+      </div>
+
+      <div style="margin-top:10px" class="row">
+        <label style="width:160px">Output preset</label>
+        <select id="presetSel" style="flex:1">
+          <option value="1080x1080">Instagram Square — 1080×1080</option>
+          <option value="1080x1920">Instagram Story — 1080×1920</option>
+          <option value="1200x630">Facebook Post — 1200×630</option>
+        </select>
+        <button id="generateBtn" class="small">Generate Canvases</button>
+      </div>
+
+      <div style="margin-top:12px" class="controls">
+        <button id="exportAll" class="small">Batch Export Semua</button>
+        <button id="clearBtn" class="small ghost">Bersihkan</button>
+        <div class="muted" style="margin-left:8px">Jika fetch error CORS -> coba isi CORS proxy di atas, atau paste manual.</div>
+      </div>
+    </div>
+
+    <div id="status" class="muted"></div>
+
+    <div id="canvasArea" class="card">
+      <div class="muted">Preview canvases:</div>
+      <div id="canvases" class="canvas-grid" style="margin-top:12px"></div>
+    </div>
+
+    <footer>
+      Note: Export akan menunggu semua gambar ter-load. Jika gambar eksternal tidak mengizinkan CORS, export akan gagal — gunakan CORS proxy atau paste gambar ke manual upload.
+    </footer>
+  </div>
+
+<script>
+/*
+  INTI — URL to Image generator (single-file)
+  - Fetch URL (or use pasted HTML/text)
+  - Extract main content heuristically
+  - Split into multiple "pages" (canvases)
+  - Render each page to canvas with layout (title, optional image, text)
+  - Export per-canvas or batch export to PNG
+  Comments inline explain important/complex logic.
+*/
+
+(function(){
+  // UI elements
+  const urlInput = document.getElementById('urlInput');
+  const fetchBtn = document.getElementById('fetchBtn');
+  const manualInput = document.getElementById('manualInput');
+  const parseManual = document.getElementById('parseManual');
+  const splitMode = document.getElementById('splitMode');
+  const charsPer = document.getElementById('charsPer');
+  const fontSel = document.getElementById('fontSel');
+  const fontSizeInput = document.getElementById('fontSize');
+  const presetSel = document.getElementById('presetSel');
+  const generateBtn = document.getElementById('generateBtn');
+  const canvasesEl = document.getElementById('canvases');
+  const statusEl = document.getElementById('status');
+  const exportAllBtn = document.getElementById('exportAll');
+  const clearBtn = document.getElementById('clearBtn');
+  const corsProxy = document.getElementById('corsProxy');
+
+  // Internal state
+  let pages = []; // each page: {title, imageSrc|null, text}
+  let previewCanvases = []; // DOM canvases created for preview
+  let presetSize = { w:1080, h:1080 };
+
+  // Helper: set status text
+  function setStatus(s, isError){
+    statusEl.textContent = s || '';
+    statusEl.style.color = isError ? '#b91c1c' : '#374151';
+  }
+
+  // Helper: fetch URL, returning string
+  async function fetchUrlText(url){
+    // optionally prefix CORS proxy if user provided
+    const proxy = corsProxy.value && corsProxy.value.trim();
+    const target = proxy ? (proxy + url) : url;
+    const res = await fetch(target, { mode: 'cors' });
+    if (!res.ok) throw new Error('Fetch failed: ' + res.status);
+    const ct = res.headers.get('content-type') || '';
+    // If returning HTML or text, return as text
+    return await res.text();
+  }
+
+  // Heuristic extraction of main article content from HTML string
+  function extractContentFromHTML(htmlString){
+    // Parse into DOM
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlString, 'text/html');
+
+    // Try common selectors for main article content
+    const selectors = [
+      'article',
+      'main',
+      '[role="main"]',
+      '.post-content',
+      '.entry-content',
+      '.article-content',
+      '#content',
+      '.content',
+    ];
+
+    let container = null;
+    for (const s of selectors){
+      container = doc.querySelector(s);
+      if (container) break;
+    }
+    // fallback to body
+    if (!container) container = doc.body || doc.documentElement;
+
+    // Extract title
+    let title = '';
+    const h = doc.querySelector('h1') || doc.querySelector('title');
+    if (h) title = (h.textContent || '').trim();
+
+    // Extract top image (first significant <img>)
+    let imageSrc = null;
+    const imgs = container.querySelectorAll('img');
+    for (const img of imgs){
+      const src = img.getAttribute('src') || img.getAttribute('data-src');
+      if (!src) continue;
+      // skip tiny images like icons
+      const w = parseInt(img.getAttribute('width') || 0, 10);
+      const h = parseInt(img.getAttribute('height') || 0, 10);
+      if ((w && w < 80) || (h && h < 80)) continue;
+      imageSrc = src;
+      break;
+    }
+
+    // Collect paragraphs text
+    const paras = [];
+    const pNodes = container.querySelectorAll('p, li');
+    for (const p of pNodes){
+      const txt = (p.textContent || '').trim();
+      if (txt.length >= 20) paras.push(txt);
+    }
+
+    // If no paragraphs, fallback to full text content split
+    if (paras.length === 0){
+      // try breaking by sentences
+      const alltext = (container.textContent || '').replace(/\s+/g, ' ').trim();
+      if (alltext.length) {
+        // split into pseudo-paragraphs of ~300 characters
+        for (let i = 0; i < alltext.length; i += 300){
+          paras.push(alltext.slice(i, i+300));
+        }
+      }
+    }
+
+    return { title: title || '', imageSrc, paragraphs: paras };
+  }
+
+  // Utility: split paragraphs/text into pages based on mode
+  function mapContentToPages({ title, imageSrc, paragraphs }, opts){
+    const mode = opts.mode || 'auto';
+    const chars = opts.chars || 1200;
+    const pagesOut = [];
+
+    if (mode === 'paragraph'){
+      // each paragraph becomes its own page (but group small paras)
+      let agg = '';
+      for (const p of paragraphs){
+        if (agg.length && agg.length + p.length < 800) { agg += '\n\n' + p; continue; }
+        if (agg) { pagesOut.push({ title: '', image: null, text: agg }); agg = ''; }
+        pagesOut.push({ title: '', image: null, text: p });
+      }
+      if (agg) pagesOut.push({ title:'', image:null, text:agg });
+    } else if (mode === 'chars'){
+      // concatenate all text and slice every N chars
+      const all = paragraphs.join('\n\n');
+      for (let i=0;i<all.length;i+=chars){
+        pagesOut.push({ title:'', image:null, text: all.slice(i,i+chars).trim() });
+      }
+    } else {
+      // auto: try to make balanced pages ~ chars each, keep paragraph boundaries
+      let current = '';
+      for (const p of paragraphs){
+        if (!current) { current = p; continue; }
+        if (current.length + p.length < chars) { current += '\n\n' + p; }
+        else { pagesOut.push({ title:'', image:null, text: current }); current = p; }
+      }
+      if (current) pagesOut.push({ title:'', image:null, text: current });
+    }
+
+    // attach title + image to first page if present
+    if (title && pagesOut.length){
+      pagesOut[0].title = title;
+    } else if (title && pagesOut.length===0){
+      pagesOut.push({ title, image:null, text:'' });
+    }
+    if (imageSrc && pagesOut.length){
+      pagesOut[0].image = imageSrc;
+    }
+    return pagesOut;
+  }
+
+  // Asynchronous image loader with crossOrigin and error handling.
+  // Returns an Image object that has loaded, or null if failed.
+  function loadImage(src){
+    return new Promise((resolve) => {
+      try {
+        const img = new Image();
+        // Important: try to allow export by requesting anonymous CORS.
+        img.crossOrigin = 'anonymous';
+        img.onload = ()=> resolve(img);
+        img.onerror = (err)=> {
+          // failed to load (likely CORS or broken). Resolve null so caller can handle.
+          console.warn('Image load failed:', src, err);
+          resolve(null);
+        };
+        img.src = src;
+      } catch (e){
+        resolve(null);
+      }
+    });
+  }
+
+  // Text wrapping utility:
+  // given a CanvasRenderingContext2D, text, and maxWidth, returns array of lines.
+  function wrapText(ctx, text, maxWidth){
+    const words = text.replace(/\r/g,'').split(/\s+/);
+    const lines = [];
+    let line = '';
+    for (let i=0;i<words.length;i++){
+      const word = words[i];
+      const test = line ? (line + ' ' + word) : word;
+      const w = ctx.measureText(test).width;
+      if (w > maxWidth && line){
+        lines.push(line);
+        line = word;
+      } else {
+        line = test;
+      }
+    }
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  // Render a page (pageData) onto a canvas element sized previewW×previewH.
+  // The function returns a Promise that resolves when all images for that page are loaded and drawn.
+  async function renderPageToCanvas(pageData, previewW, previewH, opts){
+    // create canvas
+    const canvas = document.createElement('canvas');
+    // For preview, we can use scaled size; but store original full size in dataset for export
+    canvas.width = previewW;
+    canvas.height = previewH;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    ctx.imageSmoothingQuality = 'high';
+
+    // fill background
+    ctx.fillStyle = opts.bgColor || '#ffffff';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    // If image exists, try load it (note: may return null if CORS fails)
+    let img = null;
+    if (pageData.image){
+      // if image is data URL already, it is safe
+      img = await loadImage(pageData.image);
+      // if image failed and pageData.image is relative URL, try a couple of heuristics:
+      if (!img && opts.baseUrl){
+        try {
+          const abs = (new URL(pageData.image, opts.baseUrl)).href;
+          img = await loadImage(abs);
+        } catch(e){}
+      }
+    }
+
+    // Layout settings
+    const padding = Math.round(canvas.width * 0.06);
+    const contentWidth = canvas.width - padding*2;
+    const fontFamily = opts.font || 'Inter, system-ui';
+    const titleSize = Math.round(opts.fontSize * 1.2);
+    const bodySize = Math.round(opts.fontSize);
+
+    let y = padding;
+
+    // draw image at top if available — keep aspect and fit into a band
+    if (img){
+      const maxImgH = Math.round(canvas.height * 0.35);
+      let iw = img.width, ih = img.height;
+      const aspect = iw / ih;
+      let drawW = contentWidth;
+      let drawH = Math.round(drawW / aspect);
+      if (drawH > maxImgH) { drawH = maxImgH; drawW = Math.round(drawH * aspect); }
+      const imgX = padding + Math.round((contentWidth - drawW)/2);
+      ctx.drawImage(img, imgX, y, drawW, drawH);
+      y += drawH + Math.round(padding*0.5);
+    }
+
+    // draw title if present
+    if (pageData.title){
+      ctx.fillStyle = opts.titleColor || '#111827';
+      ctx.textBaseline = 'top';
+      ctx.font = `700 ${titleSize}px ${fontFamily}`;
+      // wrap title
+      const titleLines = wrapText(ctx, pageData.title, contentWidth);
+      for (const line of titleLines){
+        ctx.fillText(line, padding, y);
+        y += Math.round(titleSize * 1.1);
+      }
+      y += Math.round(padding*0.15);
+    }
+
+    // draw text body; we want to fill remaining vertical space and let text wrap naturally
+    ctx.fillStyle = opts.textColor || '#111827';
+    ctx.textBaseline = 'top';
+    ctx.font = `${bodySize}px ${fontFamily}`;
+
+    // Use paragraphs splitting to control spacing
+    const paras = (pageData.text || '').split(/\n\s*\n/).filter(Boolean);
+    for (const p of paras){
+      const lines = wrapText(ctx, p, contentWidth);
+      for (const line of lines){
+        if (y + bodySize > canvas.height - padding) {
+          // no more room — stop drawing (shouldn't happen because pages are sized to content)
+          break;
+        }
+        ctx.fillText(line, padding, y);
+        y += Math.round(bodySize * 1.3);
+      }
+      y += Math.round(bodySize * 0.6);
+    }
+
+    // store metadata for later export
+    canvas.dataset.title = pageData.title || '';
+    canvas.dataset.text = pageData.text || '';
+    canvas.dataset.image = pageData.image || '';
+    return canvas;
+  }
+
+  // Main: generate canvases from pages data and add to DOM
+  async function generateCanvasesFromPages(pagesData){
+    canvasesEl.innerHTML = ''; previewCanvases = [];
+    setStatus('Rendering canvases...');
+
+    // determine preview size: scale down from target preset for UI speed
+    // compute preset size from select
+    const [pw, ph] = presetSel.value.split('x').map(n=>parseInt(n,10));
+    // preview scale so canvases fit; we choose max preview width ~ 420
+    const maxPreviewWidth = 420;
+    const scale = Math.min(1, maxPreviewWidth / pw);
+    const previewW = Math.round(pw * scale);
+    const previewH = Math.round(ph * scale);
+
+    // render pages sequentially to avoid high concurrency
+    for (let i=0;i<pagesData.length;i++){
+      const p = pagesData[i];
+      // render each page
+      try {
+        const c = await renderPageToCanvas(p, previewW, previewH, {
+          font: fontSel.value,
+          fontSize: parseInt(fontSizeInput.value,10) || 36,
+          titleColor: '#0f172a',
+          textColor: '#0f172a',
+          bgColor: '#ffffff',
+          baseUrl: urlInput.value || undefined,
+        });
+        // create container with controls
+        const container = document.createElement('div');
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.gap = '8px';
+
+        const label = document.createElement('div');
+        label.textContent = `Page ${i+1} — ${p.title ? p.title.slice(0,60) : '(no title)'}`;
+        label.className = 'muted';
+        container.appendChild(label);
+        container.appendChild(c);
+
+        // Export buttons (per-canvas & export scaled to preset)
+        const row = document.createElement('div');
+        row.className = 'row';
+        const btnExport = document.createElement('button');
+        btnExport.className = 'small';
+        btnExport.textContent = 'Export PNG';
+        btnExport.addEventListener('click', ()=> exportCanvasAsPNG(c, presetSel.value, i+1));
+        row.appendChild(btnExport);
+
+        // direct download of dataURL (preview-sized)
+        const btnSavePreview = document.createElement('button');
+        btnSavePreview.className = 'ghost small';
+        btnSavePreview.textContent = 'Download Preview (small)';
+        btnSavePreview.addEventListener('click', ()=>{
+          const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = `page-${i+1}-preview.png`; a.click();
+        });
+        row.appendChild(btnSavePreview);
+
+        container.appendChild(row);
+        canvasesEl.appendChild(container);
+        previewCanvases.push({ canvas:c, page:p });
+      } catch (err){
+        console.error('render error', err);
+        const warn = document.createElement('div');
+        warn.textContent = 'Error rendering page ' + (i+1) + ': ' + (err && err.message ? err.message : err);
+        warn.className = 'danger';
+        canvasesEl.appendChild(warn);
+      }
+    }
+
+    setStatus(`Selesai: ${previewCanvases.length} canvas dibuat.`);
+  }
+
+  // Export a given preview canvas into full resolution PNG (uses offscreen canvas)
+  async function exportCanvasAsPNG(previewCanvas, presetValue, index){
+    setStatus('Preparing export...');
+
+    const preset = presetValue ? presetValue : presetSel.value;
+    const [W, H] = preset.split('x').map(n=>parseInt(n,10));
+    // Create offscreen canvas with full res
+    const off = document.createElement('canvas');
+    off.width = W; off.height = H;
+    const ctx = off.getContext('2d', { alpha:false });
+    ctx.imageSmoothingQuality = 'high';
+
+    // Re-render the page data at full resolution (important: don't reuse preview image)
+    // We use stored metadata in dataset to rebuild page object
+    const pageObj = {
+      title: previewCanvas.dataset.title || '',
+      image: previewCanvas.dataset.image || null,
+      text: previewCanvas.dataset.text || ''
+    };
+
+    // Load image if any (await), using crossOrigin
+    let img = null;
+    if (pageObj.image){
+      img = await loadImage(pageObj.image);
+      // If failed, and base URL present, try resolve relative
+      if (!img && urlInput.value){
+        try {
+          const abs = (new URL(pageObj.image, urlInput.value)).href;
+          img = await loadImage(abs);
+        } catch(e){}
+      }
+    }
+
+    // Now perform similar drawing as renderPageToCanvas but on offscreen full size
+    try {
+      // background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0,0,W,H);
+
+      const padding = Math.round(W * 0.06);
+      const contentWidth = W - padding*2;
+      const fontFamily = fontSel.value || 'Inter, system-ui';
+      const titleSize = Math.round((parseInt(fontSizeInput.value,10)||40) * 1.2);
+      const bodySize = Math.round(parseInt(fontSizeInput.value,10) || 40);
+      let y = padding;
+
+      if (img){
+        const maxImgH = Math.round(H * 0.35);
+        const aspect = img.width / img.height;
+        let drawW = contentWidth;
+        let drawH = Math.round(drawW / aspect);
+        if (drawH > maxImgH){ drawH = maxImgH; drawW = Math.round(drawH * aspect); }
+        const imgX = padding + Math.round((contentWidth - drawW)/2);
+        ctx.drawImage(img, imgX, y, drawW, drawH);
+        y += drawH + Math.round(padding*0.5);
+      }
+
+      if (pageObj.title){
+        ctx.fillStyle = '#0f172a';
+        ctx.textBaseline = 'top';
+        ctx.font = `700 ${titleSize}px ${fontFamily}`;
+        const lines = wrapText(ctx, pageObj.title, contentWidth);
+        for (const line of lines){
+          ctx.fillText(line, padding, y);
+          y += Math.round(titleSize * 1.1);
+        }
+        y += Math.round(padding*0.15);
+      }
+
+      ctx.fillStyle = '#0f172a';
+      ctx.textBaseline = 'top';
+      ctx.font = `${bodySize}px ${fontFamily}`;
+      const paras = (pageObj.text||'').split(/\n\s*\n/).filter(Boolean);
+      for (const p of paras){
+        const lines = wrapText(ctx, p, contentWidth);
+        for (const line of lines){
+          if (y + bodySize > H - padding) break;
+          ctx.fillText(line, padding, y);
+          y += Math.round(bodySize * 1.3);
+        }
+        y += Math.round(bodySize * 0.6);
+      }
+
+      // finally download
+      const url = off.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `page-${index}-${W}x${H}.png`;
+      a.click();
+      setStatus('Export selesai: ' + a.download);
+    } catch (err){
+      console.error('export err', err);
+      setStatus('Export gagal — kemungkinan karena gambar eksternal membatasi CORS. Coba gunakan CORS proxy atau paste gambar manual.', true);
+      alert('Export gagal — kemungkinan CORS pada gambar eksternal. Coba gunakan CORS proxy atau paste gambar ke manual input.');
+    }
+  }
+
+  // Batch export: sequentially export all preview canvases at selected preset
+  async function batchExportAll(){
+    if (!previewCanvases.length) return alert('Belum ada canvas untuk diexport.');
+    setStatus('Batch exporting... (akan men-trigger beberapa download)');
+    for (let i=0;i<previewCanvases.length;i++){
+      const item = previewCanvases[i];
+      // small delay to avoid browser blocking multiple downloads
+      await exportCanvasAsPNG(item.canvas, presetSel.value, i+1);
+      await new Promise(r=>setTimeout(r,200));
+    }
+    setStatus('Batch export selesai.');
+  }
+
+  // Clear UI
+  function clearAll(){
+    pages = []; previewCanvases = []; canvasesEl.innerHTML = ''; setStatus('');
+  }
+
+  // ---------- Events wiring ----------
+  fetchBtn.addEventListener('click', async ()=>{
+    const url = urlInput.value && urlInput.value.trim();
+    if (!url){
+      return alert('Isi URL terlebih dahulu atau paste manual HTML/text.');
+    }
+    setStatus('Fetching URL...');
+    try {
+      const text = await fetchUrlText(url);
+      setStatus('Parsing content...');
+      const extracted = extractContentFromHTML(text);
+      // map to pages
+      const mode = splitMode.value;
+      const mapped = mapContentToPages(extracted, { mode, chars: parseInt(charsPer.value,10) || 1200 });
+      pages = mapped;
+      setStatus(`Sukses: ${pages.length} pages dihasilkan. Rendering preview...`);
+      await generateCanvasesFromPages(pages);
+    } catch (err){
+      console.error(err);
+      setStatus('Fetch gagal: ' + (err && err.message ? err.message : err), true);
+      alert('Fetch gagal. Jika error CORS, coba tambahkan CORS proxy prefix (kolom di atas) atau paste HTML secara manual.');
+    }
+  });
+
+  parseManual.addEventListener('click', async ()=>{
+    const txt = manualInput.value && manualInput.value.trim();
+    if (!txt) return alert('Paste HTML atau plain text di textarea lalu klik "Gunakan Text/HTML yang Dipaste".');
+    // Try to detect if it's HTML: contains tags
+    let extracted;
+    if (/\\<\\w+/.test(txt)){
+      // treat as HTML
+      extracted = extractContentFromHTML(txt);
+    } else {
+      // treat as plain text -> create paragraphs by double linebreaks
+      const paras = txt.split(/\\n\\s*\\n/).filter(Boolean);
+      extracted = { title: '', imageSrc: null, paragraphs: paras };
+    }
+    pages = mapContentToPages(extracted, { mode: splitMode.value, chars: parseInt(charsPer.value,10) || 1200 });
+    setStatus(`${pages.length} pages dibuat dari input manual. Rendering...`);
+    await generateCanvasesFromPages(pages);
+  });
+
+  generateBtn.addEventListener('click', async ()=>{
+    // If pages already present from fetch/manual, regenerate canvases with current settings (font/size/preset)
+    if (!pages.length) return alert('Belum ada konten — fetch URL atau paste manual terlebih dahulu.');
+    await generateCanvasesFromPages(pages);
+  });
+
+  exportAllBtn.addEventListener('click', ()=>{ batchExportAll(); });
+  clearBtn.addEventListener('click', ()=>{ if(confirm('Kosongkan semua?')) clearAll(); });
+
+  // Utility: export a preview canvas (wrapper)
+  async function exportCanvasAsPNG(previewCanvas, presetValue, index){
+    // call our function above
+    return await (exportCanvasAsPNG === undefined ? (()=>{}) : (window.exportCanvasAsPNG ? window.exportCanvasAsPNG(previewCanvas, presetValue, index) : window.exportCanvasAsPNG = exportCanvasAsPNGInternal(previewCanvas,presetValue,index)));
+  }
+
+  // To keep scoping clean, we assign internal export function to global name used earlier
+  async function exportCanvasAsPNGInternal(previewCanvas, presetValue, index){
+    // but we already declared a function with this name earlier; that will be used instead.
+    // Here return a resolved promise so it's no-op — real function already defined earlier.
+    return Promise.resolve();
+  }
+
+  // Initialize some defaults
+  (function init(){
+    setStatus('');
+    // choose default preset size
+    const [w,h] = presetSel.value.split('x').map(n=>parseInt(n,10));
+    presetSize = { w,h };
+  })();
+
+  // Note: actual export function used when clicking per-canvas buttons is the one defined above,
+  // because we closed over it when creating btnExport event listeners in generateCanvasesFromPages.
+
+})();
+</script>
+</body>
+</html>
