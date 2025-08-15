@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>INTI Simple Canvas Editor</title>
+<style>
+  :root{
+    --ink:#1f2937;--muted:#6b7280;--bg:#f7fafc;--card:#ffffff;--brand:#4f46e5;--brand-2:#06b6d4;--ok:#10b981;--warn:#f59e0b;--danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#fff,#f1f5f9);color:var(--ink);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  .btn{appearance:none;border:0;background:#e5e7eb;color:#111;padding:8px 12px;border-radius:10px;font-weight:700;cursor:pointer;transition:.15s transform,.2s box-shadow}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px #0001}
+  .btn.primary{background:var(--brand);color:#fff}
+  .btn.dark{background:#111827;color:#fff}
+  .btn.success{background:var(--ok);color:#fff}
+  .btn.ghost{background:#ffffffaa}
+  .btn.small{padding:6px 8px;border-radius:8px;font-weight:600}
+  .toolbar .btn{padding:6px 10px}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #e5e7eb;border-radius:999px;padding:6px 10px}
+  .container{max-width:1200px;margin:0 auto;padding:12px}
+  header.sticky{position:sticky;top:0;z-index:20;background:#ffffffd9;backdrop-filter:blur(6px);border-bottom:1px solid #e5e7eb}
+  header .container{display:flex;align-items:center;justify-content:space-between}
+  .logo{display:flex;align-items:center;gap:10px}
+  .logo-badge{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--brand),var(--brand-2));box-shadow:0 6px 18px #0002}
+  main{display:grid;grid-template-columns:280px 1fr 320px;gap:12px}
+  @media (max-width:1000px){main{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 10px 30px #0000000a}
+  .card .head{padding:12px 14px;border-bottom:1px solid #e5e7eb;font-weight:800}
+  .card .body{padding:12px 14px}
+  .grid{display:grid;gap:10px}
+  .grid.cols-2{grid-template-columns:1fr 1fr}
+  .grid.cols-3{grid-template-columns:repeat(3,1fr)}
+  .row{display:flex;gap:10px;align-items:center}
+  input[type="color"],select,input[type="number"],input[type="text"],textarea{width:100%;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px;background:#fff}
+  textarea{min-height:110px}
+  .canvas-wrap{background:#f3f4f6;border-radius:16px;border:1px solid #e5e7eb;padding:12px;overflow:auto}
+  canvas{display:block;background:#fff;border-radius:12px;box-shadow:0 12px 30px #00000012}
+  .toolbar{display:flex;gap:6px;flex-wrap:wrap}
+  .kbd{font:600 12px/1.2 ui-monospace,Menlo,Consolas,monospace;background:#111827;color:#fff;border-radius:6px;padding:3px 6px}
+  .muted{color:var(--muted)}
+  .switch{display:inline-flex;align-items:center;gap:8px}
+  .switch input{width:40px}
+  .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-weight:700}
+  .slider{width:100%}
+  .badge{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px dashed #e5e7eb;border-radius:10px;padding:6px 8px}
+  .section{margin:12px 0}
+</style>
+</head>
+<body>
+<header class="sticky">
+  <div class="container">
+    <div class="logo">
+      <div class="logo-badge"></div>
+      <div>
+        <div style="font-weight:900;line-height:1">INTI Canvas</div>
+        <div class="muted" style="margin-top:-2px;font-size:12px">Editor gambar sederhana ala Photoshop</div>
+      </div>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="btnExport">Export PNG</button>
+      <div class="row" id="presetButtons"></div>
+    </div>
+  </div>
+</header>
+
+<div class="container section muted">Klik elemen untuk memilih • Seret untuk memindahkan • <span class="kbd">Ctrl/Cmd+Z</span> Undo • <span class="kbd">Shift+Ctrl/Cmd+Z</span> Redo • <span class="kbd">Del</span> Hapus</div>
+
+<main class="container">
+  <aside class="card" id="leftPane">
+    <div class="head">Template & Background</div>
+    <div class="body grid">
+      <div class="grid cols-2">
+        <button class="btn" id="tplDark">Cover Gelap</button>
+        <button class="btn" id="tplLight">Cover Cerah</button>
+        <button class="btn" id="tplQuote">Quote</button>
+        <button class="btn" id="tplAnn">Announcement</button>
+      </div>
+      <div class="row"><span class="pill">Background</span></div>
+      <div class="grid cols-3">
+        <label class="badge">Warna <input type="color" id="bgColor" value="#f5f7fb"></label>
+        <button class="btn" id="btnBgImage">Gambar…</button>
+        <input type="file" id="bgFile" accept="image/*" hidden>
+      </div>
+      <div class="row switch"><label>Grid</label><input type="checkbox" id="gridToggle" checked></div>
+      <div class="row switch"><label>Snap to center</label><input type="checkbox" id="snapToggle" checked></div>
+      <div class="row"><label>Zoom</label><input type="range" id="zoom" class="slider" min="0.3" max="1" step="0.05" value="0.6"></div>
+      <div class="row"><span class="pill">Ukuran Kanvas</span></div>
+      <div class="grid cols-3">
+        <select id="presetSelect"></select>
+        <input type="number" id="width" value="1080" min="200">
+        <input type="number" id="height" value="1080" min="200">
+      </div>
+      <div class="grid cols-3">
+        <button class="btn" id="applySize">Terapkan</button>
+        <button class="btn" id="undoBtn">Undo</button>
+        <button class="btn" id="redoBtn">Redo</button>
+      </div>
+      <div class="row"><span class="pill">Tambah</span></div>
+      <div class="grid cols-3">
+        <button class="btn" id="addText">Teks</button>
+        <button class="btn" id="addImage">Gambar</button>
+        <button class="btn" id="duplicate">Duplikat</button>
+        <input type="file" id="imgFile" accept="image/*" hidden>
+      </div>
+      <div class="grid cols-3">
+        <button class="btn" id="front">Front</button>
+        <button class="btn" id="back">Back</button>
+        <button class="btn" id="del" style="background:#fee2e2">Hapus</button>
+      </div>
+      <div class="grid cols-2">
+        <button class="btn" id="saveJSON">Simpan Template</button>
+        <button class="btn" id="loadJSON">Muat Template</button>
+        <input type="file" id="jsonFile" accept="application/json" hidden>
+      </div>
+    </div>
+  </aside>
+
+  <section class="card">
+    <div class="head row" style="justify-content:space-between">
+      <div style="font-weight:900">Editor</div>
+      <div class="muted">Ukuran: <span id="szLabel">1080×1080</span> • Zoom: <span id="zoomLabel">0.6</span>x</div>
+    </div>
+    <div class="body">
+      <div class="canvas-wrap">
+        <canvas id="canvas" width="648" height="648" aria-label="Kanvas editor"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <aside class="card" id="rightPane">
+    <div class="head">Properti</div>
+    <div class="body grid" id="props">
+      <div class="muted">Pilih elemen untuk mengedit.</div>
+    </div>
+  </aside>
+</main>
+
+<section class="container section">
+  <div class="card">
+    <div class="head">Markdown Bawah</div>
+    <div class="body grid cols-2">
+      <textarea id="mdInput">## Catatan
+Tambahkan deskripsi atau caption di sini.
+
+**Tebal**, *miring*, dan tautan: [contoh](https://intisatu.com)</textarea>
+      <div id="mdPreview" class="body" style="border-left:1px dashed #e5e7eb"></div>
+    </div>
+  </div>
+</section>
+
+<footer class="container section muted" style="text-align:center">© 2025 INTI Canvas — Template, B/I/U, font/size/warna, impor gambar HD, background, preset output, markdown bawah, Undo/Redo, layer, snap, zoom.</footer>
+
+<script>
+(function(){
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const presetButtons = document.getElementById('presetButtons');
+  const presetSelect = document.getElementById('presetSelect');
+  const widthInp = document.getElementById('width');
+  const heightInp = document.getElementById('height');
+  const applySizeBtn = document.getElementById('applySize');
+  const zoomRange = document.getElementById('zoom');
+  const zoomLabel = document.getElementById('zoomLabel');
+  const szLabel = document.getElementById('szLabel');
+  const gridToggle = document.getElementById('gridToggle');
+  const snapToggle = document.getElementById('snapToggle');
+  const bgColor = document.getElementById('bgColor');
+  const bgFile = document.getElementById('bgFile');
+  const btnBgImage = document.getElementById('btnBgImage');
+  const addTextBtn = document.getElementById('addText');
+  const addImageBtn = document.getElementById('addImage');
+  const imgFile = document.getElementById('imgFile');
+  const delBtn = document.getElementById('del');
+  const frontBtn = document.getElementById('front');
+  const backBtn = document.getElementById('back');
+  const dupBtn = document.getElementById('duplicate');
+  const undoBtn = document.getElementById('undoBtn');
+  const redoBtn = document.getElementById('redoBtn');
+  const saveJSONBtn = document.getElementById('saveJSON');
+  const loadJSONBtn = document.getElementById('loadJSON');
+  const jsonFile = document.getElementById('jsonFile');
+  const props = document.getElementById('props');
+  const mdInput = document.getElementById('mdInput');
+  const mdPreview = document.getElementById('mdPreview');
+
+  const presets = [
+    { name:'IG Square', w:1080, h:1080 },
+    { name:'IG Story', w:1080, h:1920 },
+    { name:'Facebook Post', w:1200, h:630 },
+  ];
+
+  const fonts = [
+    'Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
+    'Poppins, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
+    'Merriweather, Georgia, serif',
+    'Montserrat, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
+    'Nunito, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif'
+  ];
+
+  // State
+  let size = { w:1080, h:1080 };
+  let zoom = 0.6;
+  let background = { type:'color', color:'#f5f7fb', image:null };
+  let elements = [];
+  let selectedId = null;
+  let drag = null; // {id, mode:'move'|'nw'|'ne'|'sw'|'se'|'rotate', ox, oy}
+  let history = []; let future = [];
+
+  // UI init
+  function initUI(){
+    presetSelect.innerHTML = presets.map(p=>`<option value="${p.name}">${p.name} (${p.w}×${p.h})</option>`).join('');
+    presetButtons.innerHTML = presets.map(p=>`<button class="btn dark small" data-preset="${p.name}">${p.name}</button>`).join('');
+  }
+  initUI();
+
+  presetButtons.addEventListener('click', e=>{
+    const btn = e.target.closest('button[data-preset]'); if(!btn) return;
+    exportPNG(btn.dataset.preset);
+  });
+
+  document.getElementById('btnExport').addEventListener('click', ()=>exportPNG());
+
+  presetSelect.addEventListener('change', ()=>{
+    const p = presets.find(x=>x.name===presetSelect.value); if(!p) return;
+    pushHistory();
+    size = { w:p.w, h:p.h }; widthInp.value = size.w; heightInp.value = size.h; resizeCanvas(); draw();
+  });
+
+  applySizeBtn.addEventListener('click', ()=>{ pushHistory(); size = { w:+widthInp.value, h:+heightInp.value }; resizeCanvas(); draw(); });
+  zoomRange.addEventListener('input', ()=>{ zoom = parseFloat(zoomRange.value); resizeCanvas(); draw(); });
+  btnBgImage.addEventListener('click', ()=> bgFile.click());
+  bgFile.addEventListener('change', e=>{ const f = e.target.files && e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload=()=>{ background={ type:'image', color:bgColor.value, image:r.result }; draw(); }; r.readAsDataURL(f); });
+  bgColor.addEventListener('input', ()=>{ background={ ...background, type:'color', color:bgColor.value }; draw(); });
+  addTextBtn.addEventListener('click', ()=> addText());
+  addImageBtn.addEventListener('click', ()=> imgFile.click());
+  imgFile.addEventListener('change', e=>{ const f=e.target.files && e.target.files[0]; if(f) addImage(f); });
+  delBtn.addEventListener('click', onDelete);
+  frontBtn.addEventListener('click', ()=> layerMove('front'));
+  backBtn.addEventListener('click', ()=> layerMove('back'));
+  dupBtn.addEventListener('click', duplicate);
+  undoBtn.addEventListener('click', undo);
+  redoBtn.addEventListener('click', redo);
+  saveJSONBtn.addEventListener('click', saveJSON);
+  loadJSONBtn.addEventListener('click', ()=> jsonFile.click());
+  jsonFile.addEventListener('change', e=>{ const f=e.target.files && e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const st=JSON.parse(r.result); elements=st.elements||[]; background=st.background||background; size=st.size||size; widthInp.value=size.w; heightInp.value=size.h; resizeCanvas(); draw(); }catch(err){ alert('File tidak valid'); } }; r.readAsText(f); });
+
+  // Templates
+  document.getElementById('tplDark').addEventListener('click', ()=>{ pushHistory(); background={type:'color', color:'#111827', image:null}; addText('Judul Besar\nSubjudul pendek', {color:'#fff'}); });
+  document.getElementById('tplLight').addEventListener('click', ()=>{ pushHistory(); background={type:'color', color:'#f0f9ff', image:null}; addText('Tema Ringan'); addSubText(); });
+  document.getElementById('tplQuote').addEventListener('click', ()=>{ pushHistory(); background={type:'color', color:'#ffe4e6', image:null}; addText('“Kutipan Inspiratif”',{italic:true, weight:800}); });
+  document.getElementById('tplAnn').addEventListener('click', ()=>{ pushHistory(); background={type:'color', color:'#ecfdf5', image:null}; addText('Pengumuman'); addSubText(); });
+
+  function resizeCanvas(){
+    canvas.width = Math.round(size.w * zoom);
+    canvas.height = Math.round(size.h * zoom);
+    ctx.imageSmoothingQuality = 'high';
+    zoomLabel.textContent = zoom.toFixed(2);
+    szLabel.textContent = `${size.w}×${size.h}`;
+  }
+  resizeCanvas();
+
+  // Elements utils
+  function pushHistory(){ history.push(JSON.stringify({elements, background, size})); future=[]; }
+  function undo(){ if(!history.length) return; const prev=history.pop(); future.unshift(JSON.stringify({elements, background, size})); const st=JSON.parse(prev); elements=st.elements; background=st.background; size=st.size; widthInp.value=size.w; heightInp.value=size.h; resizeCanvas(); draw(); }
+  function redo(){ if(!future.length) return; const next=future.shift(); history.push(JSON.stringify({elements, background, size})); const st=JSON.parse(next); elements=st.elements; background=st.background; size=st.size; widthInp.value=size.w; heightInp.value=size.h; resizeCanvas(); draw(); }
+
+  function addText(template, patch){
+    const id = crypto.randomUUID();
+    const el = { id, type:'text', x: size.w*0.1, y: size.h*0.2, w: size.w*0.8, text: template||'Judul Besar', color:'#111827', align:'center', font:fonts[0], size: Math.round(size.w*0.08), weight:800, italic:false, underline:false, lineHeight:1.2, ...patch };
+    elements.push(el); selectedId=id; draw(); return id;
+  }
+  function addSubText(){ const id = crypto.randomUUID(); const el={ id, type:'text', x:size.w*0.12, y:size.h*0.32, w:size.w*0.76, text:'Subjudul yang informatif', color:'#374151', align:'center', font:fonts[1], size: Math.round(size.w*0.035), weight:700, italic:false, underline:false, lineHeight:1.4 }; elements.push(el); selectedId=id; draw(); }
+  function addImage(file){ const r=new FileReader(); r.onload=()=>{ const img=new Image(); img.onload=()=>{ const aspect=img.width/img.height; let w=size.w*0.7; let h=w/aspect; if(h>size.h*0.7){ h=size.h*0.7; w=h*aspect; } const id=crypto.randomUUID(); elements.push({ id, type:'image', x:(size.w-w)/2, y:(size.h-h)/2, w, h, src:r.result, rot:0 }); selectedId=id; draw(); }; img.src=r.result; }; r.readAsDataURL(file); }
+
+  function layerMove(dir){ if(!selectedId) return; const idx=elements.findIndex(e=>e.id===selectedId); if(idx<0) return; const it=elements.splice(idx,1)[0]; if(dir==='front') elements.push(it); else elements.unshift(it); draw(); }
+  function duplicate(){ if(!selectedId) return; const src=elements.find(e=>e.id===selectedId); if(!src) return; const id=crypto.randomUUID(); elements.push({...src, id, x:src.x+20, y:src.y+20}); selectedId=id; draw(); }
+  function onDelete(){ if(!selectedId) return; elements = elements.filter(e=>e.id!==selectedId); selectedId=null; draw(); }
+
+  // Hit test & interaction
+  function hitTest(mx,my){ const x=mx/zoom, y=my/zoom; for(let i=elements.length-1;i>=0;i--){ const e=elements[i]; if(e.type==='image'){ if(x>=e.x && x<=e.x+e.w && y>=e.y && y<=e.y+e.h) return {id:e.id,zone:cornerZone(e,x,y)}; } else { const h=measureTextBlock(e).h; const tx=e.x, ty=e.y-e.size; if(x>=tx && x<=tx+e.w && y>=ty && y<=ty+h+e.size) return {id:e.id,zone:cornerZone({x:tx,y:ty,w:e.w,h:Math.max(e.size,h)},x,y)}; } } return null; }
+  function cornerZone(e,x,y){ const pad=10; const near=(ax,ay)=>Math.abs(ax-x)<=pad && Math.abs(ay-y)<=pad; if(near(e.x,e.y)) return 'nw'; if(near(e.x+e.w,e.y)) return 'ne'; if(near(e.x,e.y+e.h)) return 'sw'; if(near(e.x+e.w,e.y+e.h)) return 'se'; return 'move'; }
+
+  canvas.addEventListener('pointerdown', e=>{ const r=canvas.getBoundingClientRect(); const mx=e.clientX-r.left, my=e.clientY-r.top; const hit=hitTest(mx,my); if(hit){ selectedId=hit.id; const el=elements.find(x=>x.id===selectedId); drag={ id:selectedId, mode:hit.zone, ox: mx/zoom - el.x, oy: my/zoom - el.y, sx: el.w, sy: el.h }; } else { selectedId=null; } draw(); });
+  canvas.addEventListener('pointermove', e=>{ if(!drag) return; const r=canvas.getBoundingClientRect(); const mx=e.clientX-r.left, my=e.clientY-r.top; const el=elements.find(x=>x.id===drag.id); if(!el) return; let nx = mx/zoom - drag.ox; let ny = my/zoom - drag.oy; if(drag.mode==='move'){ if(document.getElementById('snapToggle').checked){ const cx = nx + el.w/2, cy = ny + (el.h||measureTextBlock(el).h)/2; if(Math.abs(cx - size.w/2) < 6) nx = size.w/2 - el.w/2; if(Math.abs(cy - size.h/2) < 6) ny = size.h/2 - (el.h||measureTextBlock(el).h)/2; } el.x = Math.round(nx); el.y = Math.round(ny); }
+    else { // resize
+      const min=16; let dx = mx/zoom - el.x; let dy = my/zoom - el.y; if(drag.mode==='se'){ el.w = Math.max(min, dx); el.h = Math.max(min, dy); }
+      if(drag.mode==='ne'){ el.w = Math.max(min, dx); const by = (el.y+el.h) - my/zoom; el.y = Math.min(el.y+el.h-min, my/zoom); el.h = Math.max(min, by); }
+      if(drag.mode==='sw'){ const bx = (el.x+el.w) - mx/zoom; el.x = Math.min(el.x+el.w-min, mx/zoom); el.w = Math.max(min, bx); el.h = Math.max(min, dy); }
+      if(drag.mode==='nw'){ const bx = (el.x+el.w) - mx/zoom; const by = (el.y+el.h) - my/zoom; el.x = Math.min(el.x+el.w-min, mx/zoom); el.y = Math.min(el.y+el.h-min, my/zoom); el.w = Math.max(min, bx); el.h = Math.max(min, by); }
+    }
+    draw(); });
+  window.addEventListener('pointerup', ()=>{ drag=null; });
+
+  // Keyboard
+  window.addEventListener('keydown', e=>{
+    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); if(e.shiftKey) redo(); else undo(); }
+    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='y'){ e.preventDefault(); redo(); }
+    if((e.key==='Delete'||e.key==='Backspace') && selectedId){ e.preventDefault(); onDelete(); }
+    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='d'){ e.preventDefault(); duplicate(); }
+  });
+
+  // Drawing
+  function measureTextBlock(t){ const _ = ctx; _.save(); _.font = `${t.italic?'italic ':''}${t.weight||400} ${t.size}px ${t.font}`; const lines = t.text.split('\n'); let maxw=0; for(const line of lines){ maxw = Math.max(maxw, _.measureText(line).width); } _.restore(); return { w: Math.min(maxw, t.w), h: Math.round(lines.length * t.size * t.lineHeight) }; }
+
+  function drawScene(context, scale){
+    if(background.type==='color'){ context.fillStyle=background.color; context.fillRect(0,0,size.w*scale,size.h*scale); }
+    else if(background.type==='image' && background.image){ const img=new Image(); img.src=background.image; const W=size.w*scale,H=size.h*scale; const draw=()=>{ const aspect=img.width/img.height; let w=W, h=w/aspect; if(h<H){ h=H; w=h*aspect; } const x=(W-w)/2, y=(H-h)/2; context.drawImage(img,x,y,w,h); drawElements(); }; img.decode?img.decode().then(draw).catch(draw):img.onload=draw; return; }
+    drawElements();
+
+    function drawElements(){
+      for(const e of elements){
+        if(e.type==='image'){
+          const img=new Image(); img.src=e.src; const draw=()=>{ context.drawImage(img, e.x*scale, e.y*scale, e.w*scale, e.h*scale); }; img.decode?img.decode().then(draw).catch(draw):img.onload=draw;
+        } else if(e.type==='text'){
+          context.fillStyle = e.color; context.textAlign = e.align; const x0 = e.align==='center'? e.x+e.w/2 : e.align==='right'? e.x+e.w : e.x; context.font = `${e.italic?'italic ':''}${e.weight||400} ${Math.round(e.size*scale)}px ${e.font}`; const lines = e.text.split('\n'); let y=e.y*scale; for(const line of lines){ context.fillText(line, x0*scale, y); if(e.underline){ const m=context.measureText(line); const uw=m.width; const uh=Math.max(2,Math.round((e.size*scale)/18)); let ux=x0*scale; if(e.align==='center') ux-=uw/2; else if(e.align==='right') ux-=uw; context.fillRect(ux,y+uh,uw,uh); } y += e.size*e.lineHeight*scale; }
+        }
+      }
+      if(selectedId){ const sel=elements.find(e=>e.id===selectedId); if(sel){ const pad=6; const w= sel.type==='image'? sel.w : sel.w; const h= sel.type==='image'? sel.h : Math.max(sel.size, measureTextBlock(sel).h); context.strokeStyle='#2563eb'; context.lineWidth=2*scale; context.strokeRect((sel.x-pad)*scale,(sel.y-pad)*scale,(w+pad*2)*scale,(h+pad*2)*scale); // handles
+        const handles=[[sel.x,sel.y],[sel.x+sel.w,sel.y],[sel.x,sel.y+sel.h],[sel.x+sel.w,sel.y+sel.h]]; context.fillStyle='#2563eb'; for(const [hx,hy] of handles){ context.fillRect(hx*scale-3,hy*scale-3,6,6); }
+      }}
+      if(gridToggle.checked){ context.save(); context.globalAlpha=.12; context.strokeStyle='#000'; for(let x=0;x<=size.w;x+=120){ context.beginPath(); context.moveTo(x*scale,0); context.lineTo(x*scale,size.h*scale); context.stroke(); } for(let y=0;y<=size.h;y+=120){ context.beginPath(); context.moveTo(0,y*scale); context.lineTo(size.w*scale,y*scale); context.stroke(); } context.restore(); }
+      if(snapToggle.checked){ context.save(); context.globalAlpha=.15; context.strokeStyle='#10b981'; context.beginPath(); context.moveTo((size.w/2)*scale,0); context.lineTo((size.w/2)*scale,size.h*scale); context.moveTo(0,(size.h/2)*scale); context.lineTo(size.w*scale,(size.h/2)*scale); context.stroke(); context.restore(); }
+    }
+  }
+
+  function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); drawScene(ctx, zoom); buildProps(); }
+
+  // Export
+  function exportPNG(presetName){
+    const preset = presetName ? presets.find(p=>p.name===presetName) : null;
+    const W = preset? preset.w : size.w; const H = preset? preset.h : size.h;
+    const off = document.createElement('canvas'); off.width=W; off.height=H; const c=off.getContext('2d'); c.imageSmoothingQuality='high';
+    const scale = W/size.w; drawScene(c, scale);
+    const url = off.toDataURL('image/png'); const a=document.createElement('a'); a.href=url; a.download=`inti_canvas_${W}x${H}.png`; a.click();
+  }
+
+  // Properties panel
+  function buildProps(){
+    const el = elements.find(e=>e.id===selectedId);
+    if(!el){ props.innerHTML = '<div class="muted">Pilih elemen untuk mengedit.</div>'; return; }
+    if(el.type==='text'){
+      props.innerHTML = `
+        <div class="grid">
+          <label>Teks<textarea id="p_text">${el.text.replace(/</g,'&lt;')}</textarea></label>
+          <div class="toolbar">
+            <button class="btn small" id="p_b">B</button>
+            <button class="btn small" id="p_i"><em>I</em></button>
+            <button class="btn small" id="p_u"><u>U</u></button>
+          </div>
+          <div class="grid cols-2">
+            <select id="p_font">${fonts.map(f=>`<option ${f===el.font?'selected':''} value="${f}">${f.split(',')[0]}</option>`).join('')}</select>
+            <input type="number" id="p_size" value="${el.size}" min="8" />
+          </div>
+          <div class="grid cols-2">
+            <input type="color" id="p_color" value="${el.color}" />
+            <select id="p_align"><option ${el.align==='left'?'selected':''}>left</option><option ${el.align==='center'?'selected':''}>center</option><option ${el.align==='right'?'selected':''}>right</option></select>
+          </div>
+          <div class="row"><label>Line spacing</label><input class="slider" type="range" min="1" max="2" step="0.05" id="p_line" value="${el.lineHeight}"></div>
+          <div class="grid cols-2">
+            <label>X<input type="number" id="p_x" value="${el.x}"></label>
+            <label>Y<input type="number" id="p_y" value="${el.y}"></label>
+            <label>W<input type="number" id="p_w" value="${el.w}"></label>
+            <div></div>
+          </div>
+        </div>`;
+      document.getElementById('p_text').addEventListener('input', e=>{ el.text=e.target.value; draw(); });
+      document.getElementById('p_b').addEventListener('click', ()=>{ el.weight = el.weight===800?400:800; draw(); });
+      document.getElementById('p_i').addEventListener('click', ()=>{ el.italic = !el.italic; draw(); });
+      document.getElementById('p_u').addEventListener('click', ()=>{ el.underline = !el.underline; draw(); });
+      document.getElementById('p_font').addEventListener('change', e=>{ el.font=e.target.value; draw(); });
+      document.getElementById('p_size').addEventListener('input', e=>{ el.size=+e.target.value; draw(); });
+      document.getElementById('p_color').addEventListener('input', e=>{ el.color=e.target.value; draw(); });
+      document.getElementById('p_align').addEventListener('change', e=>{ el.align=e.target.value; draw(); });
+      document.getElementById('p_line').addEventListener('input', e=>{ el.lineHeight=parseFloat(e.target.value); draw(); });
+      document.getElementById('p_x').addEventListener('input', e=>{ el.x=+e.target.value; draw(); });
+      document.getElementById('p_y').addEventListener('input', e=>{ el.y=+e.target.value; draw(); });
+      document.getElementById('p_w').addEventListener('input', e=>{ el.w=+e.target.value; draw(); });
+    } else if(el.type==='image'){
+      props.innerHTML = `
+        <div class="grid">
+          <div class="row"><span class="pill">Gambar</span><span class="muted">(seret untuk pindah, sudut untuk resize)</span></div>
+          <div class="row"><label>Skala</label><input class="slider" id="p_scale" type="range" min="0.2" max="2" step="0.05" value="1"></div>
+          <div class="grid cols-2">
+            <label>X<input type="number" id="p_x" value="${el.x}"></label>
+            <label>Y<input type="number" id="p_y" value="${el.y}"></label>
+            <label>W<input type="number" id="p_w" value="${el.w}"></label>
+            <label>H<input type="number" id="p_h" value="${el.h}"></label>
+          </div>
+        </div>`;
+      document.getElementById('p_scale').addEventListener('input', e=>{ const f=parseFloat(e.target.value); el.w=Math.round(el.w*f); el.h=Math.round(el.h*f); e.target.value=1; draw(); });
+      document.getElementById('p_x').addEventListener('input', e=>{ el.x=+e.target.value; draw(); });
+      document.getElementById('p_y').addEventListener('input', e=>{ el.y=+e.target.value; draw(); });
+      document.getElementById('p_w').addEventListener('input', e=>{ el.w=+e.target.value; draw(); });
+      document.getElementById('p_h').addEventListener('input', e=>{ el.h=+e.target.value; draw(); });
+    }
+  }
+
+  // Markdown
+  function simpleMarkdown(src){ let s = src; s=s.replace(/^###\s?(.+)$/gm,'<h3>$1</h3>'); s=s.replace(/^##\s?(.+)$/gm,'<h2>$1</h2>'); s=s.replace(/^#\s?(.+)$/gm,'<h1>$1</h1>'); s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>'); s=s.replace(/\*(.+?)\*/g,'<em>$1</em>'); s=s.replace(/`([^`]+)`/g,'<code>$1</code>'); s=s.replace(/\[(.+?)\]\((https?:[^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>'); s=s.replace(/\n\n/g,'<br><br>'); return s; }
+  function updateMD(){ mdPreview.innerHTML = simpleMarkdown(mdInput.value); }
+  mdInput.addEventListener('input', updateMD); updateMD();
+
+  // Pointer cursor feedback
+  canvas.addEventListener('mousemove', e=>{ const r=canvas.getBoundingClientRect(); const hit=hitTest(e.clientX-r.left,e.clientY-r.top); if(hit){ if(hit.zone==='move') canvas.style.cursor='move'; else canvas.style.cursor='nwse-resize'; } else canvas.style.cursor='default'; });
+
+  // Export presets builder
+  presets.forEach(p=>{ const btn=document.createElement('button'); btn.className='btn dark small'; btn.textContent=p.name; btn.addEventListener('click',()=>exportPNG(p.name)); /* duplicate but also in header */ });
+
+  // Rendering loop
+  draw();
+})();
+</script>
+</body>
+</html>

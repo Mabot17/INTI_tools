@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Image Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(90deg, #4c63d2 0%, #6c5ce7 100%);
+            color: white;
+            padding: 20px 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .main-content {
+            display: flex;
+            min-height: 80vh;
+        }
+        
+        .sidebar {
+            width: 300px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-right: 1px solid #dee2e6;
+            overflow-y: auto;
+            max-height: 80vh;
+        }
+        
+        .canvas-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: #e9ecef;
+        }
+        
+        .canvas-container {
+            position: relative;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        #canvas {
+            display: block;
+            cursor: crosshair;
+        }
+        
+        .controls-group {
+            margin-bottom: 25px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .controls-group h3 {
+            color: #343a40;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-bottom: 2px solid #6c5ce7;
+            padding-bottom: 5px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #6c5ce7;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #6c5ce7, #a29bfe);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin: 5px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108, 92, 231, 0.3);
+        }
+        
+        .format-buttons {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .format-buttons button {
+            padding: 8px 12px;
+            font-size: 12px;
+            min-width: auto;
+        }
+        
+        .template-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .template-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .template-item:hover, .template-item.active {
+            background: #e3f2fd;
+            border-color: #6c5ce7;
+        }
+        
+        .bg-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .bg-item {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: border-color 0.3s ease;
+        }
+        
+        .bg-item:hover, .bg-item.active {
+            border-color: #6c5ce7;
+        }
+        
+        .export-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .color-input {
+            width: 60px !important;
+            height: 40px !important;
+            padding: 2px !important;
+        }
+        
+        .range-input {
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        #imageUpload {
+            display: none;
+        }
+        
+        .upload-area {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+            margin-bottom: 15px;
+        }
+        
+        .upload-area:hover {
+            border-color: #6c5ce7;
+        }
+        
+        .layers-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        
+        .layer-item {
+            padding: 8px;
+            background: #f8f9fa;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .layer-item:hover, .layer-item.active {
+            background: #e3f2fd;
+        }
+        
+        .layer-controls {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .layer-controls button {
+            padding: 4px 8px;
+            font-size: 11px;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 Simple Image Editor</h1>
+            <p>Editor gambar sederhana seperti Photoshop - Buat desain keren dengan mudah!</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="sidebar">
+                <!-- Template Selection -->
+                <div class="controls-group">
+                    <h3>📋 Template & Ukuran</h3>
+                    <div class="template-grid">
+                        <div class="template-item active" data-size="1080x1080">
+                            <div>📱 Instagram</div>
+                            <small>1080x1080</small>
+                        </div>
+                        <div class="template-item" data-size="1080x1920">
+                            <div>📚 Story</div>
+                            <small>1080x1920</small>
+                        </div>
+                        <div class="template-item" data-size="1200x630">
+                            <div>📘 Facebook</div>
+                            <small>1200x630</small>
+                        </div>
+                        <div class="template-item" data-size="custom">
+                            <div>⚙️ Custom</div>
+                            <small>Bebas</small>
+                        </div>
+                    </div>
+                    
+                    <div id="customSize" style="display: none;">
+                        <div class="form-group">
+                            <label>Lebar:</label>
+                            <input type="number" id="customWidth" value="800" min="100" max="4000">
+                        </div>
+                        <div class="form-group">
+                            <label>Tinggi:</label>
+                            <input type="number" id="customHeight" value="600" min="100" max="4000">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Background -->
+                <div class="controls-group">
+                    <h3>🎨 Background</h3>
+                    <div class="bg-grid">
+                        <div class="bg-item active" style="background: white;" data-bg="white"></div>
+                        <div class="bg-item" style="background: #f8f9fa;" data-bg="#f8f9fa"></div>
+                        <div class="bg-item" style="background: #6c5ce7;" data-bg="#6c5ce7"></div>
+                        <div class="bg-item" style="background: #fd79a8;" data-bg="#fd79a8"></div>
+                        <div class="bg-item" style="background: #00b894;" data-bg="#00b894"></div>
+                        <div class="bg-item" style="background: #fdcb6e;" data-bg="#fdcb6e"></div>
+                        <div class="bg-item" style="background: linear-gradient(45deg, #667eea, #764ba2);" data-bg="gradient1"></div>
+                        <div class="bg-item" style="background: linear-gradient(45deg, #f093fb, #f5576c);" data-bg="gradient2"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Custom Color:</label>
+                        <input type="color" id="customBgColor" class="color-input" value="#ffffff">
+                    </div>
+                </div>
+
+                <!-- Text Controls -->
+                <div class="controls-group">
+                    <h3>✏️ Text Editor</h3>
+                    <div class="form-group">
+                        <label>Teks:</label>
+                        <textarea id="textInput" placeholder="Ketik teks di sini..." rows="3"></textarea>
+                    </div>
+                    
+                    <div class="format-buttons">
+                        <button id="boldBtn">B</button>
+                        <button id="italicBtn">I</button>
+                        <button id="underlineBtn">U</button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Font:</label>
+                        <select id="fontFamily">
+                            <option value="Arial">Arial</option>
+                            <option value="Georgia">Georgia</option>
+                            <option value="Times New Roman">Times New Roman</option>
+                            <option value="Helvetica">Helvetica</option>
+                            <option value="Verdana">Verdana</option>
+                            <option value="Impact">Impact</option>
+                            <option value="Comic Sans MS">Comic Sans MS</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Ukuran Font: <span id="fontSizeValue">24</span>px</label>
+                        <input type="range" id="fontSize" min="12" max="120" value="24" class="range-input">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Line Spacing: <span id="lineHeightValue">1.2</span></label>
+                        <input type="range" id="lineHeight" min="0.8" max="3" step="0.1" value="1.2" class="range-input">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Warna Text:</label>
+                        <input type="color" id="textColor" class="color-input" value="#000000">
+                    </div>
+                    
+                    <button id="addTextBtn">➕ Tambah Text</button>
+                </div>
+
+                <!-- Image Upload -->
+                <div class="controls-group">
+                    <h3>🖼️ Upload Gambar</h3>
+                    <div class="upload-area" onclick="document.getElementById('imageUpload').click();">
+                        <div>📁 Klik untuk upload gambar</div>
+                        <small>JPG, PNG, GIF (Max 10MB)</small>
+                    </div>
+                    <input type="file" id="imageUpload" accept="image/*">
+                </div>
+
+                <!-- Layers -->
+                <div class="controls-group">
+                    <h3>📑 Layers</h3>
+                    <div class="layers-list" id="layersList">
+                        <div class="layer-item active" data-layer="background">
+                            <span>🎨 Background</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Markdown Footer -->
+                <div class="controls-group">
+                    <h3>📝 Markdown Footer</h3>
+                    <div class="form-group">
+                        <textarea id="markdownFooter" placeholder="Made with ❤️ by [Your Name]" rows="2"></textarea>
+                    </div>
+                    <button id="addMarkdownBtn">➕ Tambah Footer</button>
+                </div>
+
+                <!-- Export -->
+                <div class="controls-group">
+                    <h3>💾 Export HD</h3>
+                    <div class="export-buttons">
+                        <button id="exportPNG">PNG</button>
+                        <button id="exportJPG">JPG</button>
+                        <button id="clearCanvas">🗑️ Clear</button>
+                        <button id="undoBtn">↶ Undo</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="canvas-area">
+                <div class="canvas-container">
+                    <canvas id="canvas" width="1080" height="1080"></canvas>
+                </div>
+                <div style="margin-top: 15px; color: #6c757d;">
+                    <small>💡 Tip: Klik dan drag untuk memindahkan elemen. Gunakan mouse wheel untuk zoom.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class SimpleEditor {
+            constructor() {
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.elements = [];
+                this.selectedElement = null;
+                this.isDragging = false;
+                this.dragStart = {x: 0, y: 0};
+                this.history = [];
+                this.currentLayer = 'background';
+                
+                this.initializeEvents();
+                this.drawBackground();
+                this.saveState();
+            }
+
+            initializeEvents() {
+                // Template selection
+                document.querySelectorAll('.template-item').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        document.querySelectorAll('.template-item').forEach(t => t.classList.remove('active'));
+                        e.target.closest('.template-item').classList.add('active');
+                        
+                        const size = e.target.closest('.template-item').dataset.size;
+                        if (size === 'custom') {
+                            document.getElementById('customSize').style.display = 'block';
+                        } else {
+                            document.getElementById('customSize').style.display = 'none';
+                            this.setCanvasSize(size);
+                        }
+                    });
+                });
+
+                // Custom size
+                document.getElementById('customWidth').addEventListener('change', () => this.setCustomSize());
+                document.getElementById('customHeight').addEventListener('change', () => this.setCustomSize());
+
+                // Background selection
+                document.querySelectorAll('.bg-item').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        document.querySelectorAll('.bg-item').forEach(bg => bg.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.setBackground(e.target.dataset.bg);
+                    });
+                });
+
+                document.getElementById('customBgColor').addEventListener('change', (e) => {
+                    this.setBackground(e.target.value);
+                });
+
+                // Text controls
+                document.getElementById('addTextBtn').addEventListener('click', () => this.addText());
+                document.getElementById('fontSizeValue');
+                document.getElementById('fontSize').addEventListener('input', (e) => {
+                    document.getElementById('fontSizeValue').textContent = e.target.value;
+                });
+                document.getElementById('lineHeight').addEventListener('input', (e) => {
+                    document.getElementById('lineHeightValue').textContent = e.target.value;
+                });
+
+                // Format buttons
+                document.getElementById('boldBtn').addEventListener('click', () => this.toggleFormat('bold'));
+                document.getElementById('italicBtn').addEventListener('click', () => this.toggleFormat('italic'));
+                document.getElementById('underlineBtn').addEventListener('click', () => this.toggleFormat('underline'));
+
+                // Image upload
+                document.getElementById('imageUpload').addEventListener('change', (e) => this.handleImageUpload(e));
+
+                // Markdown
+                document.getElementById('addMarkdownBtn').addEventListener('click', () => this.addMarkdown());
+
+                // Export
+                document.getElementById('exportPNG').addEventListener('click', () => this.exportImage('png'));
+                document.getElementById('exportJPG').addEventListener('click', () => this.exportImage('jpeg'));
+                document.getElementById('clearCanvas').addEventListener('click', () => this.clearCanvas());
+                document.getElementById('undoBtn').addEventListener('click', () => this.undo());
+
+                // Canvas events
+                this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+                this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+                this.canvas.addEventListener('mouseup', () => this.handleMouseUp());
+                this.canvas.addEventListener('wheel', (e) => this.handleWheel(e));
+            }
+
+            setCanvasSize(size) {
+                const [width, height] = size.split('x').map(Number);
+                this.canvas.width = width;
+                this.canvas.height = height;
+                this.redraw();
+            }
+
+            setCustomSize() {
+                const width = parseInt(document.getElementById('customWidth').value);
+                const height = parseInt(document.getElementById('customHeight').value);
+                this.canvas.width = width;
+                this.canvas.height = height;
+                this.redraw();
+            }
+
+            setBackground(bg) {
+                this.background = bg;
+                this.redraw();
+            }
+
+            drawBackground() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                if (this.background) {
+                    if (this.background === 'gradient1') {
+                        const gradient = this.ctx.createLinearGradient(0, 0, this.canvas.width, this.canvas.height);
+                        gradient.addColorStop(0, '#667eea');
+                        gradient.addColorStop(1, '#764ba2');
+                        this.ctx.fillStyle = gradient;
+                    } else if (this.background === 'gradient2') {
+                        const gradient = this.ctx.createLinearGradient(0, 0, this.canvas.width, this.canvas.height);
+                        gradient.addColorStop(0, '#f093fb');
+                        gradient.addColorStop(1, '#f5576c');
+                        this.ctx.fillStyle = gradient;
+                    } else {
+                        this.ctx.fillStyle = this.background;
+                    }
+                } else {
+                    this.ctx.fillStyle = 'white';
+                }
+                
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+
+            addText() {
+                const text = document.getElementById('textInput').value;
+                if (!text) return;
+
+                const fontSize = parseInt(document.getElementById('fontSize').value);
+                const fontFamily = document.getElementById('fontFamily').value;
+                const color = document.getElementById('textColor').value;
+                const lineHeight = parseFloat(document.getElementById('lineHeight').value);
+
+                const element = {
+                    type: 'text',
+                    text: text,
+                    x: this.canvas.width / 2,
+                    y: this.canvas.height / 2,
+                    fontSize: fontSize,
+                    fontFamily: fontFamily,
+                    color: color,
+                    lineHeight: lineHeight,
+                    bold: document.getElementById('boldBtn').classList.contains('active'),
+                    italic: document.getElementById('italicBtn').classList.contains('active'),
+                    underline: document.getElementById('underlineBtn').classList.contains('active'),
+                    id: Date.now()
+                };
+
+                this.elements.push(element);
+                this.addLayer('text', `Text: ${text.substring(0, 15)}...`);
+                this.redraw();
+                this.saveState();
+                
+                document.getElementById('textInput').value = '';
+            }
+
+            toggleFormat(format) {
+                const btn = document.getElementById(format + 'Btn');
+                btn.classList.toggle('active');
+            }
+
+            handleImageUpload(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const element = {
+                            type: 'image',
+                            image: img,
+                            x: this.canvas.width / 2 - img.width / 2,
+                            y: this.canvas.height / 2 - img.height / 2,
+                            width: img.width,
+                            height: img.height,
+                            id: Date.now()
+                        };
+                        
+                        this.elements.push(element);
+                        this.addLayer('image', `Image: ${file.name.substring(0, 15)}...`);
+                        this.redraw();
+                        this.saveState();
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+
+            addMarkdown() {
+                const markdown = document.getElementById('markdownFooter').value;
+                if (!markdown) return;
+
+                const element = {
+                    type: 'text',
+                    text: markdown,
+                    x: this.canvas.width / 2,
+                    y: this.canvas.height - 40,
+                    fontSize: 16,
+                    fontFamily: 'Arial',
+                    color: '#666666',
+                    lineHeight: 1.2,
+                    id: Date.now()
+                };
+
+                this.elements.push(element);
+                this.addLayer('text', `Markdown: ${markdown.substring(0, 15)}...`);
+                this.redraw();
+                this.saveState();
+            }
+
+            addLayer(type, name) {
+                const layersList = document.getElementById('layersList');
+                const layerItem = document.createElement('div');
+                layerItem.className = 'layer-item';
+                layerItem.innerHTML = `
+                    <span>${type === 'text' ? '📝' : '🖼️'} ${name}</span>
+                    <div class="layer-controls">
+                        <button onclick="editor.deleteLayer(${this.elements.length - 1})">🗑️</button>
+                    </div>
+                `;
+                layersList.appendChild(layerItem);
+            }
+
+            deleteLayer(index) {
+                this.elements.splice(index, 1);
+                this.redraw();
+                this.updateLayersList();
+                this.saveState();
+            }
+
+            updateLayersList() {
+                const layersList = document.getElementById('layersList');
+                layersList.innerHTML = '<div class="layer-item active" data-layer="background"><span>🎨 Background</span></div>';
+                
+                this.elements.forEach((element, index) => {
+                    this.addLayer(element.type, element.type === 'text' ? element.text : 'Image');
+                });
+            }
+
+            handleMouseDown(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                for (let i = this.elements.length - 1; i >= 0; i--) {
+                    const element = this.elements[i];
+                    if (this.isPointInElement(x, y, element)) {
+                        this.selectedElement = element;
+                        this.isDragging = true;
+                        this.dragStart = {x: x - element.x, y: y - element.y};
+                        break;
+                    }
+                }
+            }
+
+            handleMouseMove(e) {
+                if (this.isDragging && this.selectedElement) {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+
+                    this.selectedElement.x = x - this.dragStart.x;
+                    this.selectedElement.y = y - this.dragStart.y;
+                    this.redraw();
+                }
+            }
+
+            handleMouseUp() {
+                if (this.isDragging) {
+                    this.saveState();
+                }
+                this.isDragging = false;
+                this.selectedElement = null;
+            }
+
+            handleWheel(e) {
+                e.preventDefault();
+                // Simple zoom functionality could be added here
+            }
+
+            isPointInElement(x, y, element) {
+                if (element.type === 'text') {
+                    // Simplified text bounds checking
+                    const textWidth = this.ctx.measureText(element.text).width;
+                    const textHeight = element.fontSize;
+                    return x >= element.x - textWidth/2 && x <= element.x + textWidth/2 &&
+                           y >= element.y - textHeight && y <= element.y;
+                } else if (element.type === 'image') {
+                    return x >= element.x && x <= element.x + element.width &&
+                           y >= element.y && y <= element.y + element.height;
+                }
+                return false;
+            }
+
+            redraw() {
+                this.drawBackground();
+                
+                this.elements.forEach(element => {
+                    if (element.type === 'text') {
+                        this.drawText(element);
+                    } else if (element.type === 'image') {
+                        this.drawImage(element);
+                    }
+                });
+            }
+
+            drawText(element) {
+                this.ctx.save();
+                
+                let fontStyle = '';
+                if (element.bold) fontStyle += 'bold ';
+                if (element.italic) fontStyle += 'italic ';
+                
+                this.ctx.font = `${fontStyle}${element.fontSize}px ${element.fontFamily}`;
+                this.ctx.fillStyle = element.color;
+                this.ctx.textAlign = 'center';
+                
+                const lines = element.text.split('\n');
+                lines.forEach((line, index) => {
+                    const y = element.y + (index * element.fontSize * element.lineHeight);
+                    this.ctx.fillText(line, element.x, y);
+                    
+                    if (element.underline) {
+                        const textWidth = this.ctx.measureText(line).width;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(element.x - textWidth/2, y + 2);
+                        this.ctx.lineTo(element.x + textWidth/2, y + 2);
+                        this.ctx.strokeStyle = element.color;
+                        this.ctx.lineWidth = 1;
+                        this.ctx.stroke();
+                    }
+                });
+                
+                this.ctx.restore();
+            }
+
+            drawImage(element) {
+                this.ctx.drawImage(element.image, element.x, element.y, element.width, element.height);
+            }
+
+            exportImage(format) {
+                const link = document.createElement('a');
+                link.download = `design.${format}`;
+                link.href = this.canvas.toDataURL(`image/${format}`, 1.0);
+                link.click();
+            }
+
+            clearCanvas() {
+                this.elements = [];
+                this.background = 'white';
+                this.redraw();
+                this.updateLayersList();
+                this.saveState();
+            }
+
+            saveState() {
+                this.history.push({
+                    elements: JSON.parse(JSON.stringify(this.elements)),
+                    background: this.background
+                });
+                if (this.history.length > 20) {
+                    this.history.shift();
+                }
+            }
+
+            undo() {
+                if (this.history.length > 1) {
+                    this.history.pop();
+                    const lastState = this.history[this.history.length - 1];
+                    this.elements = lastState.elements;
+                    this.background = lastState.background;
+                    this.redraw();
+                    this.updateLayersList();
+                }
+            }
+        }
+
+        // Initialize editor
+        const editor = new SimpleEditor();
+    </script>
+</body>
+</html>

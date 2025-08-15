@@ -1,0 +1,531 @@
+import React, { useEffect, useMemo, useRef, useState } from "react";
+
+export default function SimpleCanvasEditor() {
+  const canvasRef = useRef(null);
+  const bgInputRef = useRef(null);
+  const imgInputRef = useRef(null);
+  const [size, setSize] = useState({ w: 1080, h: 1080, preset: "IG Square" });
+  const [bg, setBg] = useState({ type: "color", color: "#f5f7fb", image: null });
+  const [elements, setElements] = useState([]);
+  const [selectedId, setSelectedId] = useState(null);
+  const [drag, setDrag] = useState(null);
+  const [zoom, setZoom] = useState(0.6);
+  const [showGrid, setShowGrid] = useState(true);
+  const [markdown, setMarkdown] = useState("## Catatan\nTambahkan deskripsi atau caption di sini.\n\n**Tebal**, *miring*, dan tautan: [contoh](https://intisatu.com)");
+  const [history, setHistory] = useState([]);
+  const [future, setFuture] = useState([]);
+
+  const presets = [
+    { name: "IG Square", w: 1080, h: 1080 },
+    { name: "IG Story", w: 1080, h: 1920 },
+    { name: "Facebook Post", w: 1200, h: 630 },
+  ];
+
+  const fonts = [
+    "Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
+    "Poppins, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
+    "Merriweather, Georgia, serif",
+    "Montserrat, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
+    "Nunito, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
+  ];
+
+  const scaled = useMemo(() => ({ W: Math.round(size.w * zoom), H: Math.round(size.h * zoom) }), [size, zoom]);
+
+  function pushHistory(next) {
+    setHistory(h => [...h, JSON.stringify({ elements, bg, size })]);
+    setFuture([]);
+    if (typeof next === "function") next();
+  }
+
+  function undo() {
+    if (!history.length) return;
+    const prev = history[history.length - 1];
+    setHistory(h => h.slice(0, -1));
+    setFuture(f => [JSON.stringify({ elements, bg, size }), ...f]);
+    const state = JSON.parse(prev);
+    setElements(state.elements); setBg(state.bg); setSize(state.size);
+  }
+
+  function redo() {
+    if (!future.length) return;
+    const next = future[0];
+    setFuture(f => f.slice(1));
+    setHistory(h => [...h, JSON.stringify({ elements, bg, size })]);
+    const state = JSON.parse(next);
+    setElements(state.elements); setBg(state.bg); setSize(state.size);
+  }
+
+  function addText(template) {
+    const id = crypto.randomUUID();
+    pushHistory(() => setElements(el => [
+      ...el,
+      {
+        id,
+        type: "text",
+        x: size.w * 0.1,
+        y: size.h * 0.2,
+        w: size.w * 0.8,
+        text: template || "Judul Besar",
+        color: "#111827",
+        align: "center",
+        font: fonts[0],
+        size: Math.round(size.w * 0.08),
+        weight: 800,
+        italic: false,
+        underline: false,
+        lineHeight: 1.2,
+      },
+    ]));
+    setSelectedId(id);
+  }
+
+  function addSubText() {
+    const id = crypto.randomUUID();
+    pushHistory(() => setElements(el => [
+      ...el,
+      {
+        id,
+        type: "text",
+        x: size.w * 0.12,
+        y: size.h * 0.32,
+        w: size.w * 0.76,
+        text: "Subjudul yang informatif",
+        color: "#374151",
+        align: "center",
+        font: fonts[1],
+        size: Math.round(size.w * 0.035),
+        weight: 700,
+        italic: false,
+        underline: false,
+        lineHeight: 1.4,
+      },
+    ]));
+  }
+
+  function addImage(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const aspect = img.width / img.height;
+        let w = size.w * 0.7;
+        let h = w / aspect;
+        if (h > size.h * 0.7) { h = size.h * 0.7; w = h * aspect; }
+        const id = crypto.randomUUID();
+        pushHistory(() => setElements(el => [
+          ...el,
+          { id, type: "image", x: (size.w - w) / 2, y: (size.h - h) / 2, w, h, src: reader.result }
+        ]));
+        setSelectedId(id);
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function setBackgroundImage(file) {
+    const reader = new FileReader();
+    reader.onload = () => setBg({ type: "image", color: bg.color, image: reader.result });
+    reader.readAsDataURL(file);
+  }
+
+  function hitTest(mx, my) {
+    const x = mx / zoom;
+    const y = my / zoom;
+    for (let i = elements.length - 1; i >= 0; i--) {
+      const e = elements[i];
+      if (e.type === "image") {
+        if (x >= e.x && x <= e.x + e.w && y >= e.y && y <= e.y + e.h) return e.id;
+      } else if (e.type === "text") {
+        const h = measureTextBlock(e).h;
+        const w = e.w;
+        const tx = e.x;
+        const ty = e.y - e.size; // approximate top
+        if (x >= tx && x <= tx + w && y >= ty && y <= ty + h + e.size) return e.id;
+      }
+    }
+    return null;
+  }
+
+  function handlePointerDown(ev) {
+    const rect = canvasRef.current.getBoundingClientRect();
+    const mx = ev.clientX - rect.left;
+    const my = ev.clientY - rect.top;
+    const id = hitTest(mx, my);
+    setSelectedId(id);
+    if (id) {
+      const e = elements.find(x => x.id === id);
+      setDrag({ id, ox: mx / zoom - e.x, oy: my / zoom - e.y });
+    } else {
+      setDrag(null);
+    }
+  }
+
+  function handlePointerMove(ev) {
+    if (!drag) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const mx = ev.clientX - rect.left;
+    const my = ev.clientY - rect.top;
+    const nx = mx / zoom - drag.ox;
+    const ny = my / zoom - drag.oy;
+    setElements(el => el.map(e => e.id === drag.id ? { ...e, x: Math.round(nx), y: Math.round(ny) } : e));
+  }
+
+  function handlePointerUp() { setDrag(null); }
+
+  function onDelete() {
+    if (!selectedId) return;
+    pushHistory(() => setElements(el => el.filter(e => e.id !== selectedId)));
+    setSelectedId(null);
+  }
+
+  function bringToFront() {
+    if (!selectedId) return;
+    pushHistory(() => setElements(el => {
+      const idx = el.findIndex(e => e.id === selectedId);
+      if (idx === -1) return el;
+      const copy = [...el];
+      const [item] = copy.splice(idx, 1);
+      copy.push(item);
+      return copy;
+    }));
+  }
+
+  function sendToBack() {
+    if (!selectedId) return;
+    pushHistory(() => setElements(el => {
+      const idx = el.findIndex(e => e.id === selectedId);
+      if (idx === -1) return el;
+      const copy = [...el];
+      const [item] = copy.splice(idx, 1);
+      copy.unshift(item);
+      return copy;
+    }));
+  }
+
+  function duplicate() {
+    if (!selectedId) return;
+    const src = elements.find(e => e.id === selectedId);
+    const id = crypto.randomUUID();
+    pushHistory(() => setElements(el => [...el, { ...src, id, x: src.x + 20, y: src.y + 20 }]));
+    setSelectedId(id);
+  }
+
+  function measureTextBlock(t) {
+    const ctx = canvasRef.current.getContext("2d");
+    ctx.font = `${t.italic ? "italic " : ""}${t.weight || 400} ${t.size}px ${t.font}`;
+    const lines = t.text.split("\n");
+    const h = Math.round(lines.length * t.size * t.lineHeight);
+    let maxw = 0;
+    for (const line of lines) {
+      const w = ctx.measureText(line).width;
+      maxw = Math.max(maxw, w);
+    }
+    return { w: Math.min(maxw, t.w), h };
+  }
+
+  function drawScene(ctx, scale = 1) {
+    if (bg.type === "color") {
+      ctx.fillStyle = bg.color; ctx.fillRect(0, 0, size.w * scale, size.h * scale);
+    } else if (bg.type === "image" && bg.image) {
+      const img = new Image(); img.src = bg.image;
+      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, size.w * scale, size.h * scale);
+      const draw = () => {
+        const W = size.w * scale, H = size.h * scale;
+        const aspect = img.width / img.height;
+        let w = W, h = W / aspect;
+        if (h < H) { h = H; w = h * aspect; }
+        const x = (W - w) / 2; const y = (H - h) / 2;
+        ctx.drawImage(img, x, y, w, h);
+        drawElements();
+      };
+      img.decode ? img.decode().then(draw).catch(draw) : img.onload = draw;
+      return;
+    }
+    drawElements();
+
+    function drawElements() {
+      for (const e of elements) {
+        if (e.type === "image") {
+          const img = new Image(); img.src = e.src;
+          const draw = () => ctx.drawImage(img, e.x * scale, e.y * scale, e.w * scale, e.h * scale);
+          img.decode ? img.decode().then(draw).catch(draw) : img.onload = draw;
+        } else if (e.type === "text") {
+          ctx.fillStyle = e.color;
+          ctx.textAlign = e.align;
+          const x0 = e.align === "center" ? e.x + e.w / 2 : e.align === "right" ? e.x + e.w : e.x;
+          ctx.font = `${e.italic ? "italic " : ""}${e.weight || 400} ${e.size * scale}px ${e.font}`;
+          const lines = e.text.split("\n");
+          let y = e.y * scale;
+          for (const line of lines) {
+            ctx.fillText(line, x0 * scale, y);
+            if (e.underline) {
+              const metrics = ctx.measureText(line);
+              const uw = metrics.width; const uh = Math.max(2, Math.round((e.size * scale) / 18));
+              let ux = x0 * scale; if (e.align === "center") ux -= uw / 2; else if (e.align === "right") ux -= uw;
+              ctx.fillRect(ux, y + uh, uw, uh);
+            }
+            y += e.size * e.lineHeight * scale;
+          }
+        }
+      }
+      if (selectedId) {
+        const sel = elements.find(e => e.id === selectedId);
+        if (sel) {
+          const pad = 6;
+          const x = sel.x, y = sel.y, w = sel.type === "image" ? sel.w : sel.w, h = sel.type === "image" ? sel.h : Math.max(sel.size, measureTextBlock(sel).h);
+          ctx.strokeStyle = "#2563eb"; ctx.lineWidth = 2 * scale;
+          ctx.strokeRect((x - pad) * scale, (y - pad) * scale, (w + pad * 2) * scale, (h + pad * 2) * scale);
+        }
+      }
+      if (showGrid) {
+        ctx.save();
+        ctx.globalAlpha = 0.15; ctx.strokeStyle = "#111"; ctx.lineWidth = 1;
+        for (let x = 0; x <= size.w; x += 120) { ctx.beginPath(); ctx.moveTo(x * scale, 0); ctx.lineTo(x * scale, size.h * scale); ctx.stroke(); }
+        for (let y = 0; y <= size.h; y += 120) { ctx.beginPath(); ctx.moveTo(0, y * scale); ctx.lineTo(size.w * scale, y * scale); ctx.stroke(); }
+        ctx.restore();
+      }
+    }
+  }
+
+  useEffect(() => {
+    const c = canvasRef.current; const ctx = c.getContext("2d");
+    c.width = Math.round(size.w * zoom); c.height = Math.round(size.h * zoom);
+    ctx.imageSmoothingQuality = "high";
+    drawScene(ctx, zoom);
+  }, [size, elements, bg, zoom, selectedId, showGrid]);
+
+  useEffect(() => {
+    function onKey(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") { e.shiftKey ? redo() : undo(); e.preventDefault(); }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "y") { redo(); e.preventDefault(); }
+      if (e.key === "Delete" || e.key === "Backspace") { onDelete(); }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "d") { duplicate(); e.preventDefault(); }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [history, future, elements, selectedId]);
+
+  function exportPNG(preset) {
+    const { w, h } = preset ? presets.find(p => p.name === preset) : size;
+    const off = document.createElement("canvas");
+    off.width = w; off.height = h; const ctx = off.getContext("2d");
+    ctx.imageSmoothingQuality = "high";
+    const scale = w / size.w;
+    drawScene(ctx, scale);
+    const url = off.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = url; a.download = `jpr_${w}x${h}.png`; a.click();
+  }
+
+  function updateSelected(patch) {
+    if (!selectedId) return;
+    pushHistory(() => setElements(el => el.map(e => e.id === selectedId ? { ...e, ...patch } : e)));
+  }
+
+  const selected = elements.find(e => e.id === selectedId);
+
+  return (
+    <div className="min-h-screen w-full bg-gradient-to-b from-amber-50 via-white to-sky-50 text-gray-900">
+      <header className="sticky top-0 z-10 backdrop-blur bg-white/70 border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3 justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-pink-500" />
+            <div>
+              <div className="font-extrabold leading-tight">INTI Canvas</div>
+              <div className="text-xs text-gray-500 -mt-1">Simple creative editor</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => exportPNG()} className="px-3 py-2 rounded-xl bg-indigo-600 text-white font-bold shadow">Export PNG</button>
+            <div className="hidden md:flex gap-2">
+              {presets.map(p => (
+                <button key={p.name} onClick={() => exportPNG(p.name)} className="px-3 py-2 rounded-xl bg-gray-900 text-white font-semibold shadow">
+                  {p.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[280px_1fr_320px] gap-4 p-4">
+        <aside className="bg-white rounded-2xl shadow p-3 space-y-3">
+          <div className="font-extrabold">Template</div>
+          <div className="grid grid-cols-2 gap-2">
+            <button className="rounded-xl p-2 bg-amber-100 font-bold" onClick={() => { setBg({ ...bg, type: "color", color: "#111827" }); addText("Judul Besar\nSubjudul pendek"); }}>Cover Gelap</button>
+            <button className="rounded-xl p-2 bg-sky-100 font-bold" onClick={() => { setBg({ ...bg, type: "color", color: "#f0f9ff" }); addText("Tema Ringan"); addSubText(); }}>Cover Cerah</button>
+            <button className="rounded-xl p-2 bg-pink-100 font-bold" onClick={() => { setBg({ ...bg, type: "color", color: "#ffe4e6" }); addText("Kutipan Inspiratif"); }}>Quote</button>
+            <button className="rounded-xl p-2 bg-green-100 font-bold" onClick={() => { setBg({ ...bg, type: "color", color: "#ecfdf5" }); addText("Pengumuman"); addSubText(); }}>Announcement</button>
+          </div>
+          <div className="h-px bg-gray-200" />
+          <div className="space-y-2">
+            <div className="font-extrabold">Background</div>
+            <div className="flex gap-2 items-center">
+              <input type="color" value={bg.color} onChange={e => setBg({ ...bg, type: "color", color: e.target.value })} />
+              <button className="px-3 py-2 rounded-xl bg-gray-900 text-white" onClick={() => bgInputRef.current.click()}>Gambar</button>
+              <input ref={bgInputRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files && setBackgroundImage(e.target.files[0])} />
+            </div>
+            <div className="flex items-center justify-between">
+              <label className="text-sm">Grid</label>
+              <input type="checkbox" checked={showGrid} onChange={e => setShowGrid(e.target.checked)} />
+            </div>
+          </div>
+          <div className="h-px bg-gray-200" />
+          <div className="space-y-2">
+            <div className="font-extrabold">Tambah</div>
+            <button className="w-full px-3 py-2 rounded-xl bg-indigo-600 text-white font-bold" onClick={() => addText()}>Teks</button>
+            <button className="w-full px-3 py-2 rounded-xl bg-teal-600 text-white font-bold" onClick={() => imgInputRef.current.click()}>Gambar</button>
+            <input ref={imgInputRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files && addImage(e.target.files[0])} />
+          </div>
+          <div className="h-px bg-gray-200" />
+          <div className="space-y-2">
+            <div className="font-extrabold">Ukuran Kanvas</div>
+            <select className="w-full border rounded-xl px-2 py-2" value={size.preset} onChange={e => { const p = presets.find(x => x.name === e.target.value); pushHistory(() => setSize({ w: p.w, h: p.h, preset: p.name })); }}>
+              {presets.map(p => <option key={p.name} value={p.name}>{p.name} ({p.w}×{p.h})</option>)}
+            </select>
+            <div className="flex gap-2">
+              <input type="number" value={size.w} onChange={e => setSize(s => ({ ...s, w: +e.target.value }))} className="w-1/2 border rounded-xl px-2 py-1" />
+              <input type="number" value={size.h} onChange={e => setSize(s => ({ ...s, h: +e.target.value }))} className="w-1/2 border rounded-xl px-2 py-1" />
+            </div>
+            <div className="flex items-center justify-between">
+              <label className="text-sm">Zoom</label>
+              <input type="range" min={0.3} max={1.0} step={0.05} value={zoom} onChange={e => setZoom(parseFloat(e.target.value))} />
+            </div>
+          </div>
+          <div className="h-px bg-gray-200" />
+          <div className="grid grid-cols-2 gap-2">
+            <button className="px-3 py-2 rounded-xl bg-gray-200" onClick={undo}>Undo</button>
+            <button className="px-3 py-2 rounded-xl bg-gray-200" onClick={redo}>Redo</button>
+            <button className="px-3 py-2 rounded-xl bg-gray-200" onClick={duplicate}>Duplicate</button>
+            <button className="px-3 py-2 rounded-xl bg-gray-200" onClick={onDelete}>Hapus</button>
+            <button className="px-3 py-2 rounded-xl bg-gray-200" onClick={bringToFront}>Front</button>
+            <button className="px-3 py-2 rounded-xl bg-gray-200" onClick={sendToBack}>Back</button>
+          </div>
+        </aside>
+
+        <section className="bg-white rounded-2xl shadow p-3 flex flex-col items-center">
+          <div className="w-full flex items-center justify-between px-2 pb-2">
+            <div className="font-extrabold">Editor</div>
+            <div className="text-sm text-gray-500">Klik elemen untuk pilih • Geser untuk pindah</div>
+          </div>
+          <div className="overflow-auto rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            <canvas
+              ref={canvasRef}
+              width={scaled.W}
+              height={scaled.H}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              className="block rounded-xl shadow-2xl bg-white"
+              aria-label="Kanvas editor"
+            />
+          </div>
+        </section>
+
+        <aside className="bg-white rounded-2xl shadow p-3 space-y-3">
+          <div className="font-extrabold">Properti</div>
+          {selected ? (
+            <div className="space-y-3">
+              {selected.type === "text" && (
+                <>
+                  <textarea
+                    value={selected.text}
+                    onChange={e => updateSelected({ text: e.target.value })}
+                    className="w-full border rounded-xl p-2 h-28"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <select className="border rounded-xl px-2 py-2" value={selected.font} onChange={e => updateSelected({ font: e.target.value })}>
+                      {fonts.map(f => <option key={f} value={f}>{f.split(",")[0]}</option>)}
+                    </select>
+                    <input type="number" className="border rounded-xl px-2 py-2" value={selected.size} onChange={e => updateSelected({ size: +e.target.value })} />
+                    <input type="color" className="border rounded-xl px-2 py-1" value={selected.color} onChange={e => updateSelected({ color: e.target.value })} />
+                    <select className="border rounded-xl px-2 py-2" value={selected.align} onChange={e => updateSelected({ align: e.target.value })}>
+                      <option>left</option><option>center</option><option>right</option>
+                    </select>
+                    <div className="col-span-2 flex items-center gap-2">
+                      <label className="text-sm">Line</label>
+                      <input type="range" min={1} max={2} step={0.05} value={selected.lineHeight} onChange={e => updateSelected({ lineHeight: parseFloat(e.target.value) })} />
+                    </div>
+                    <div className="col-span-2 grid grid-cols-3 gap-2">
+                      <button onClick={() => updateSelected({ weight: selected.weight === 800 ? 400 : 800 })} className={`px-3 py-2 rounded-xl ${selected.weight===800?"bg-gray-900 text-white":"bg-gray-100"}`}>B</button>
+                      <button onClick={() => updateSelected({ italic: !selected.italic })} className={`px-3 py-2 rounded-xl ${selected.italic?"bg-gray-900 text-white":"bg-gray-100"}`}>I</button>
+                      <button onClick={() => updateSelected({ underline: !selected.underline })} className={`px-3 py-2 rounded-xl ${selected.underline?"bg-gray-900 text-white":"bg-gray-100"}`}>U</button>
+                    </div>
+                  </div>
+                </>
+              )}
+              {selected.type === "image" && (
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="text-sm col-span-2">Gambar (drag untuk pindah). Skala:</label>
+                  <input type="range" min={0.2} max={2} step={0.05} value={1} onChange={e => {
+                    const factor = parseFloat(e.target.value);
+                    updateSelected({ w: Math.round(selected.w * factor), h: Math.round(selected.h * factor) });
+                  }} />
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-2">
+                <input type="number" className="border rounded-xl px-2 py-1" value={selected.x} onChange={e => updateSelected({ x: +e.target.value })} />
+                <input type="number" className="border rounded-xl px-2 py-1" value={selected.y} onChange={e => updateSelected({ y: +e.target.value })} />
+                <input type="number" className="border rounded-xl px-2 py-1" value={selected.w} onChange={e => updateSelected({ w: +e.target.value })} />
+                {selected.type === "image" ? (
+                  <input type="number" className="border rounded-xl px-2 py-1" value={selected.h} onChange={e => updateSelected({ h: +e.target.value })} />
+                ) : (
+                  <div />
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500">Pilih elemen untuk mengedit.</div>
+          )}
+
+          <div className="h-px bg-gray-200" />
+
+          <div className="space-y-2">
+            <div className="font-extrabold">Export Preset</div>
+            <div className="grid grid-cols-1 gap-2">
+              {presets.map(p => (
+                <button key={p.name} onClick={() => exportPNG(p.name)} className="px-3 py-2 rounded-xl bg-emerald-600 text-white font-bold">{p.name} ({p.w}×{p.h})</button>
+              ))}
+            </div>
+          </div>
+        </aside>
+      </main>
+
+      <section className="max-w-7xl mx-auto p-4">
+        <div className="bg-white rounded-2xl shadow p-4">
+          <div className="font-extrabold mb-2">Markdown Bawah</div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <textarea value={markdown} onChange={e => setMarkdown(e.target.value)} className="w-full border rounded-xl p-3 h-40" />
+            <div className="prose max-w-none">
+              <MarkdownPreview text={markdown} />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="max-w-7xl mx-auto p-6 text-center text-sm text-gray-500">
+        © 2025 INTI Canvas • Fitur: Template, B/I/U Teks, Impor HD, Font & Spasi, Gambar, Background, Preset Output, Undo/Redo, Layering
+      </footer>
+    </div>
+  );
+}
+
+function MarkdownPreview({ text }) {
+  const html = useMemo(() => simpleMarkdown(text), [text]);
+  return <div dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
+function simpleMarkdown(src) {
+  let s = src;
+  s = s.replace(/^###\s?(.+)$/gm, '<h3>$1<\/h3>');
+  s = s.replace(/^##\s?(.+)$/gm, '<h2>$1<\/h2>');
+  s = s.replace(/^#\s?(.+)$/gm, '<h1>$1<\/h1>');
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1<\/strong>');
+  s = s.replace(/\*(.+?)\*/g, '<em>$1<\/em>');
+  s = s.replace(/`([^`]+)`/g, '<code>$1<\/code>');
+  s = s.replace(/\n\n/g, '<br/><br/>' );
+  s = s.replace(/\[(.+?)\]\((https?:[^\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1<\/a>');
+  return s;
+}
