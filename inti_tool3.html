@@ -328,12 +328,32 @@ Tambahkan deskripsi atau caption di sini.
   function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); drawScene(ctx, zoom); buildProps(); }
 
   // Export
-  function exportPNG(presetName){
-    const preset = presetName ? presets.find(p=>p.name===presetName) : null;
-    const W = preset? preset.w : size.w; const H = preset? preset.h : size.h;
-    const off = document.createElement('canvas'); off.width=W; off.height=H; const c=off.getContext('2d'); c.imageSmoothingQuality='high';
-    const scale = W/size.w; drawScene(c, scale);
-    const url = off.toDataURL('image/png'); const a=document.createElement('a'); a.href=url; a.download=`inti_canvas_${W}x${H}.png`; a.click();
+  function exportPNG(presetName, qualityFactor = 2) {
+      const preset = presetName ? presets.find(p => p.name === presetName) : null;
+      const W = preset ? preset.w : size.w;
+      const H = preset ? preset.h : size.h;
+
+      // Ukuran asli diperbesar sesuai qualityFactor
+      const realW = W * qualityFactor;
+      const realH = H * qualityFactor;
+
+      const off = document.createElement('canvas');
+      off.width = realW;
+      off.height = realH;
+
+      const c = off.getContext('2d');
+      c.imageSmoothingEnabled = true;
+      c.imageSmoothingQuality = 'high';
+
+      // Gambar ulang dengan skala proporsional
+      const scale = realW / size.w;
+      drawScene(c, scale);
+
+      const url = off.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `inti_canvas_${W}x${H}_${qualityFactor}x.png`;
+      a.click();
   }
 
   // Properties panel
