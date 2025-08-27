@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IG Reel Post Generator - INTI Series</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'poppins': ['Poppins', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .phone-mockup {
+            width: 375px;
+            height: 667px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            position: relative;
+            border-radius: 25px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .slide-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            height: 100%;
+            padding: 10%;
+            box-sizing: border-box;
+        }
+
+        .export-canvas {
+            display: none;
+        }
+
+        .color-picker-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .color-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+
+        .color-option.active {
+            border-color: #3b82f6;
+            transform: scale(1.15);
+        }
+
+        /* small toolbar for B/I/U */
+        .text-toolbar button {
+            border: 1px solid rgba(0,0,0,0.08);
+            padding: 6px 8px;
+            border-radius: 6px;
+            background: white;
+        }
+        .text-toolbar button.active {
+            background: #0ea5e9;
+            color: white;
+            border-color: #0ea5e9;
+        }
+
+        .preview-subtitle { white-space: pre-wrap; }
+
+    </style>
+</head>
+<body class="bg-gray-100 font-poppins">
+    <div class="container mx-auto px-4 py-8">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">IG Reel Post Generator</h1>
+            <p class="text-gray-600">Generate beautiful Instagram reel posts for INTI series</p>
+        </div>
+
+        <div class="flex flex-col xl:flex-row gap-8 max-w-7xl mx-auto">
+            <!-- Control Panel -->
+            <div class="xl:w-1/2 space-y-6">
+                <!-- Basic Content -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800">Content</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Judul (80px)</label>
+                            <div class="flex items-center gap-2 mb-2 text-toolbar">
+                                <button type="button" data-target="judul" data-action="bold" title="Bold">B</button>
+                                <button type="button" data-target="judul" data-action="italic" title="Italic">I</button>
+                                <button type="button" data-target="judul" data-action="underline" title="Underline">U</button>
+                            </div>
+                            <input type="text" id="judul" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Aku tak minta surga">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Subtitle (40px, multi-line)</label>
+                            <div class="flex items-center gap-2 mb-2 text-toolbar">
+                                <button type="button" data-target="subtitle" data-action="bold" title="Bold">B</button>
+                                <button type="button" data-target="subtitle" data-action="italic" title="Italic">I</button>
+                                <button type="button" data-target="subtitle" data-action="underline" title="Underline">U</button>
+                            </div>
+                            <textarea id="subtitle" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="tak takut neraka, hanya ingin menemani"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Voiceover Text (optional)</label>
+                            <div class="flex items-center gap-2 mb-2 text-toolbar">
+                                <button type="button" data-target="voiceover" data-action="bold" title="Bold">B</button>
+                                <button type="button" data-target="voiceover" data-action="italic" title="Italic">I</button>
+                                <button type="button" data-target="voiceover" data-action="underline" title="Underline">U</button>
+                            </div>
+                            <input type="text" id="voiceover" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ini manifesto kesetiaan tanpa pamrih">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Design Controls -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800">Design</h3>
+                    
+                    <div class="space-y-4">
+                        <!-- Background Color Themes -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Background Theme</label>
+                            <div class="color-picker-grid">
+                                <div class="color-option active" data-bg="linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)"></div>
+                                <div class="color-option" data-bg="linear-gradient(135deg, #2d2d2d 0%, #3c3c3c 100%)" style="background: linear-gradient(135deg, #2d2d2d 0%, #3c3c3c 100%)"></div>
+                                <div class="color-option" data-bg="linear-gradient(135deg, #3c2414 0%, #5d4037 100%)" style="background: linear-gradient(135deg, #3c2414 0%, #5d4037 100%)"></div>
+                                <div class="color-option" data-bg="linear-gradient(135deg, #1a237e 0%, #3949ab 100%)" style="background: linear-gradient(135deg, #1a237e 0%, #3949ab 100%)"></div>
+                                <div class="color-option" data-bg="linear-gradient(135deg, #004d40 0%, #00695c 100%)" style="background: linear-gradient(135deg, #004d40 0%, #00695c 100%)"></div>
+                                <div class="color-option" data-bg="linear-gradient(135deg, #4a148c 0%, #6a1b9a 100%)" style="background: linear-gradient(135deg, #4a148c 0%, #6a1b9a 100%)"></div>
+                                <div class="color-option" data-bg="linear-gradient(135deg, #bf360c 0%, #d84315 100%)" style="background: linear-gradient(135deg, #bf360c 0%, #d84315 100%)"></div>
+                                <div class="color-option" data-bg="linear-gradient(135deg, #000000 0%, #434343 100%)" style="background: linear-gradient(135deg, #000000 0%, #434343 100%)"></div>
+                            </div>
+                        </div>
+
+                        <!-- Text Colors -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Judul Color</label>
+                                <input type="color" id="judulColor" class="w-full h-10 rounded-md border border-gray-300" value="#f5f5dc">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Subtitle Color</label>
+                                <input type="color" id="subtitleColor" class="w-full h-10 rounded-md border border-gray-300" value="#d4af37">
+                            </div>
+                        </div>
+
+                        <!-- Font Weight -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Judul Weight</label>
+                                <select id="judulWeight" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="700">Bold (700)</option>
+                                    <option value="800" selected>Extra Bold (800)</option>
+                                    <option value="900">Black (900)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Subtitle Weight</label>
+                                <select id="subtitleWeight" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="400">Normal (400)</option>
+                                    <option value="500" selected>Medium (500)</option>
+                                    <option value="600">Semi Bold (600)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Font Size Adjustment -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Judul Size: <span id="judulSizeValue">80px</span></label>
+                                <input type="range" id="judulSize" min="50" max="120" value="80" class="w-full">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Subtitle Size: <span id="subtitleSizeValue">40px</span></label>
+                                <input type="range" id="subtitleSize" min="20" max="60" value="40" class="w-full">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- INTI Series Presets -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800">INTI 0016 Presets</h3>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="loadPreset('part1')" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">Part 1: Manifesto</button>
+                        <button onclick="loadPreset('part2')" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors">Part 2: Paradoks</button>
+                        <button onclick="loadPreset('part3')" class="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors">Part 3: Dialog</button>
+                        <button onclick="loadPreset('part4')" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">Part 4: Socket</button>
+                    </div>
+                </div>
+
+                <!-- Export Controls -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800">Export</h3>
+                    
+                    <div class="space-y-3">
+                        <button onclick="exportImage()" class="w-full px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-semibold">
+                            📱 Export as PNG (1080x1920)
+                        </button>
+                        <button onclick="copyToClipboard()" class="w-full px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
+                            📋 Copy Design Code
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview -->
+            <div class="xl:w-1/2 flex flex-col items-center">
+                <div class="sticky top-8">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800 text-center">Preview</h3>
+                    
+                    <div class="phone-mockup" id="phonePreview">
+                        <div class="slide-content">
+                            <div id="previewJudul" style="font-size: 80px; font-weight: 800; color: #f5f5dc; line-height: 1.1; margin-bottom: 24px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+                                Aku tak minta surga
+                            </div>
+                            <div id="previewSubtitle" class="preview-subtitle" style="font-size: 40px; font-weight: 500; color: #d4af37; line-height: 1.15; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">
+                                tak takut neraka, hanya ingin menemani
+                            </div>
+                        </div>
+                        
+                        <!-- Voiceover indicator -->
+                        <div id="voiceoverIndicator" style="position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.6); color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 14px; display: none;">
+                            🎙️ <span id="voiceoverText">Ini manifesto kesetiaan tanpa pamrih</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden canvas for export -->
+        <canvas id="exportCanvas" class="export-canvas" width="1080" height="1920"></canvas>
+    </div>
+
+    <script>
+        // Presets data
+        const presets = {
+            part1: [
+                { judul: "Aku tak minta surga", subtitle: "tak takut neraka, hanya ingin menemani", voiceover: "Ini manifesto kesetiaan tanpa pamrih" },
+                { judul: "Mengetuk tanpa jawaban", subtitle: "bukan untuk mukjizat, tapi cinta", voiceover: "Di keheningan radikal, kita tetap hadir" },
+                { judul: "Kesetiaan sejati", subtitle: "bukan menunggu pahala", voiceover: "Tapi menjaga pintu hati tetap terbuka" },
+                { judul: "Meski tak ada yang masuk", subtitle: "kami tetap menemani-Mu", voiceover: "Inilah tawaran setia generasi baru" },
+                { judul: "INTI 0016", subtitle: "Tawaran Setia", voiceover: "Lanjut ke part 2 untuk paradoks spiritual" }
+            ],
+            part2: [
+                { judul: "Paradoks kehadiran", subtitle: "hadir total berarti memaksa tunduk", voiceover: "Mengapa Tuhan menyembunyikan diri?" },
+                { judul: "Cinta jadi refleks", subtitle: "iman jadi otomatis, tak berharga", voiceover: "Keterpaksaan membunuh keaslian cinta" },
+                { judul: "Absensi agung", subtitle: "memberi ruang kehendak bebas", voiceover: "Tapi menyisakan jurang rasa ditinggal" },
+                { judul: "Manusia di tepi paradoks", subtitle: "beri kami tanda, jangan lenyapkan pilihan", voiceover: "Dan di situlah lahir kesetiaan sejati" },
+                { judul: "Part 2 selesai", subtitle: "lanjut dialog jiwa & singgasana sunyi", voiceover: "Part 3 akan membuatmu merinding" }
+            ],
+            part3: [
+                { judul: "Aku di sini", subtitle: "jawab langit: diam", voiceover: "Percakapan paling intim adalah yang sunyi" },
+                { judul: "Apa Engkau mendengar?", subtitle: "keheningan radikal, ujian ketulusan", voiceover: "Setiap gema jiwa dibalas kesunyian" },
+                { judul: "Aku tak butuh surga", subtitle: "pembebasan pamrih, murni menemani", voiceover: "Inilah cinta yang paling jujur" },
+                { judul: "Jika langit tertutup", subtitle: "daun-daun bumi menggetarkan nama-Mu", voiceover: "Tanda ada dimana-mana bagi yang ikhlas" },
+                { judul: "Dialog berlanjut", subtitle: "part 4: socket spiritual masa depan", voiceover: "Persiapkan diri untuk revolusi spiritual" }
+            ],
+            part4: [
+                { judul: "Socket spiritual dua arah", subtitle: "prototipe hubungan generasi baru", voiceover: "Bagaimana jika kita bukan hamba pasif?" },
+                { judul: "Partner kesadaran", subtitle: "menyodorkan cinta tangan terbuka", voiceover: "Firmware baru: kesadaran tanpa pamrih" },
+                { judul: "Praktik setia harian", subtitle: "walking-dzikr, journaling rindu, sunyi terjaga", voiceover: "Mengkristalkan cinta dalam ritual konkret" },
+                { judul: "Komitmen tanpa kontrak", subtitle: "kesetiaan lebih purba dari skrip spiritual", voiceover: "Ini bukan transaksi, ini adalah cinta" },
+                { judul: "INTI 0016 COMPLETE", subtitle: "baca manifesto lengkap intisatu.com", voiceover: "Selamat, kamu telah menyelesaikan journey spiritual" }
+            ]
+        };
+
+        let currentPresetIndex = 0;
+        let currentPresetType = 'part1';
+
+        // Text style state
+        const textStyles = {
+            judul: { bold: true, italic: false, underline: false },
+            subtitle: { bold: false, italic: false, underline: false },
+            voiceover: { bold: false, italic: false, underline: false }
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            updatePreview();
+        });
+
+        function setupEventListeners() {
+            // Content inputs
+            document.getElementById('judul').addEventListener('input', updatePreview);
+            document.getElementById('subtitle').addEventListener('input', updatePreview);
+            document.getElementById('voiceover').addEventListener('input', updatePreview);
+            
+            // Toolbar buttons for B/I/U
+            document.querySelectorAll('.text-toolbar button').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const target = this.dataset.target;
+                    const action = this.dataset.action;
+                    if (!target || !action) return;
+                    textStyles[target][action] = !textStyles[target][action];
+                    this.classList.toggle('active');
+                    updatePreview();
+                });
+            });
+
+            // Design controls
+            document.getElementById('judulColor').addEventListener('input', updatePreview);
+            document.getElementById('subtitleColor').addEventListener('input', updatePreview);
+            document.getElementById('judulWeight').addEventListener('change', updatePreview);
+            document.getElementById('subtitleWeight').addEventListener('change', updatePreview);
+            document.getElementById('judulSize').addEventListener('input', updatePreview);
+            document.getElementById('subtitleSize').addEventListener('input', updatePreview);
+
+            // Color picker
+            document.querySelectorAll('.color-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.color-option').forEach(o => o.classList.remove('active'));
+                    this.classList.add('active');
+                    document.getElementById('phonePreview').style.background = this.dataset.bg;
+                });
+            });
+        }
+
+        function updatePreview() {
+            const judul = document.getElementById('judul').value || "Aku tak minta surga";
+            const subtitle = document.getElementById('subtitle').value || "tak takut neraka, hanya ingin menemani";
+            const voiceover = document.getElementById('voiceover').value;
+            
+            const judulColor = document.getElementById('judulColor').value;
+            const subtitleColor = document.getElementById('subtitleColor').value;
+            const judulWeight = document.getElementById('judulWeight').value;
+            const subtitleWeight = document.getElementById('subtitleWeight').value;
+            const judulSize = document.getElementById('judulSize').value;
+            const subtitleSize = document.getElementById('subtitleSize').value;
+
+            // Update size labels
+            document.getElementById('judulSizeValue').textContent = `${judulSize}px`;
+            document.getElementById('subtitleSizeValue').textContent = `${subtitleSize}px`;
+
+            // Update preview DOM
+            const previewJudul = document.getElementById('previewJudul');
+            const previewSubtitle = document.getElementById('previewSubtitle');
+            const voiceoverIndicator = document.getElementById('voiceoverIndicator');
+            const voiceoverText = document.getElementById('voiceoverText');
+
+            previewJudul.textContent = judul;
+            previewJudul.style.color = judulColor;
+            previewJudul.style.fontWeight = judulWeight;
+            previewJudul.style.fontSize = `${judulSize}px`;
+            previewJudul.style.fontStyle = textStyles.judul.italic ? 'italic' : 'normal';
+            previewJudul.style.textDecoration = textStyles.judul.underline ? 'underline' : 'none';
+
+            previewSubtitle.textContent = subtitle;
+            previewSubtitle.style.color = subtitleColor;
+            previewSubtitle.style.fontWeight = subtitleWeight;
+            previewSubtitle.style.fontSize = `${subtitleSize}px`;
+            previewSubtitle.style.fontStyle = textStyles.subtitle.italic ? 'italic' : 'normal';
+            previewSubtitle.style.textDecoration = textStyles.subtitle.underline ? 'underline' : 'none';
+
+            if (voiceover) {
+                voiceoverText.textContent = voiceover;
+                voiceoverText.style.fontWeight = textStyles.voiceover.bold ? '700' : '400';
+                voiceoverText.style.fontStyle = textStyles.voiceover.italic ? 'italic' : 'normal';
+                voiceoverText.style.textDecoration = textStyles.voiceover.underline ? 'underline' : 'none';
+                voiceoverIndicator.style.display = 'block';
+            } else {
+                voiceoverIndicator.style.display = 'none';
+            }
+        }
+
+        function loadPreset(type) {
+            currentPresetType = type;
+            currentPresetIndex = 0;
+            
+            const preset = presets[type][currentPresetIndex];
+            document.getElementById('judul').value = preset.judul;
+            document.getElementById('subtitle').value = preset.subtitle;
+            document.getElementById('voiceover').value = preset.voiceover;
+            
+            updatePreview();
+            
+            // Add navigation buttons for presets
+            showPresetNavigation(type);
+        }
+
+        function showPresetNavigation(type) {
+            const existingNav = document.getElementById('presetNavigation');
+            if (existingNav) existingNav.remove();
+            
+            const nav = document.createElement('div');
+            nav.id = 'presetNavigation';
+            nav.className = 'mt-4 flex justify-between items-center bg-gray-100 p-3 rounded-md';
+            nav.innerHTML = `
+                <button onclick="previousPreset()" class="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600">← Prev</button>
+                <span class="text-sm text-gray-600">Slide ${currentPresetIndex + 1}/${presets[type].length}</span>
+                <button onclick="nextPreset()" class="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600">Next →</button>
+            `;
+            
+            document.querySelector('.bg-white.rounded-lg.shadow-lg.p-6:nth-child(3)').appendChild(nav);
+        }
+
+        function previousPreset() {
+            const totalSlides = presets[currentPresetType].length;
+            currentPresetIndex = currentPresetIndex > 0 ? currentPresetIndex - 1 : totalSlides - 1;
+            
+            const preset = presets[currentPresetType][currentPresetIndex];
+            document.getElementById('judul').value = preset.judul;
+            document.getElementById('subtitle').value = preset.subtitle;
+            document.getElementById('voiceover').value = preset.voiceover;
+            
+            updatePreview();
+            document.querySelector('#presetNavigation span').textContent = `Slide ${currentPresetIndex + 1}/${totalSlides}`;
+        }
+
+        function nextPreset() {
+            const totalSlides = presets[currentPresetType].length;
+            currentPresetIndex = currentPresetIndex < totalSlides - 1 ? currentPresetIndex + 1 : 0;
+            
+            const preset = presets[currentPresetType][currentPresetIndex];
+            document.getElementById('judul').value = preset.judul;
+            document.getElementById('subtitle').value = preset.subtitle;
+            document.getElementById('voiceover').value = preset.voiceover;
+            
+            updatePreview();
+            document.querySelector('#presetNavigation span').textContent = `Slide ${currentPresetIndex + 1}/${totalSlides}`;
+        }
+
+        // Helper to parse gradient hex colors from CSS gradient string
+        function parseGradientColors(bg) {
+            const matches = bg.match(/#([0-9a-fA-F]{3,6})/g);
+            if (!matches) return ['#1a1a2e', '#16213e'];
+            // return unique, up to 4
+            const unique = [...new Set(matches)];
+            return unique.slice(0,4);
+        }
+
+        // Draw wrapped text (preserving newlines)
+        function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight, options = {}) {
+            const paragraphs = text.split('\n');
+            let lines = [];
+            paragraphs.forEach(p => {
+                const words = p.split(' ');
+                let line = '';
+                for (let i = 0; i < words.length; i++) {
+                    const testLine = (line + words[i] + ' ').trimRight();
+                    const metrics = ctx.measureText(testLine);
+                    const testWidth = metrics.width;
+                    if (testWidth > maxWidth && line !== '') {
+                        lines.push(line.trimRight());
+                        line = words[i] + ' ';
+                    } else {
+                        line = testLine + ' ';
+                    }
+                }
+                if (line) lines.push(line.trimRight());
+            });
+
+            const totalHeight = lines.length * lineHeight;
+            const startY = y - totalHeight / 2;
+
+            for (let i = 0; i < lines.length; i++) {
+                const lineText = lines[i];
+                ctx.fillText(lineText, x, startY + i * lineHeight);
+                // underline support
+                if (options.underline) {
+                    const metrics = ctx.measureText(lineText);
+                    const underlineY = startY + i * lineHeight + (lineHeight * 0.25);
+                    const lineWidth = metrics.width;
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.lineWidth = Math.max(2, Math.floor(lineHeight * 0.06));
+                    ctx.strokeStyle = ctx.fillStyle;
+                    ctx.moveTo(x - lineWidth/2, underlineY);
+                    ctx.lineTo(x + lineWidth/2, underlineY);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
+        }
+
+        function exportImage() {
+            // ensure fonts loaded so canvas renders same
+            document.fonts.ready.then(() => {
+                const canvas = document.getElementById('exportCanvas');
+                const ctx = canvas.getContext('2d');
+                
+                canvas.width = 1080;
+                canvas.height = 1920;
+
+                const phonePreview = document.getElementById('phonePreview');
+                const phoneRect = phonePreview.getBoundingClientRect();
+                const scale = canvas.width / phoneRect.width; // scale factor from preview -> canvas
+
+                // background
+                const bgStyle = phonePreview.style.background || getComputedStyle(phonePreview).background;
+                const colors = parseGradientColors(bgStyle);
+                const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                if (colors.length === 1) {
+                    gradient.addColorStop(0, colors[0]);
+                    gradient.addColorStop(1, colors[0]);
+                } else {
+                    gradient.addColorStop(0, colors[0]);
+                    gradient.addColorStop(1, colors[1] || colors[0]);
+                }
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // get preview elements and computed styles
+                const previewJudul = document.getElementById('previewJudul');
+                const previewSubtitle = document.getElementById('previewSubtitle');
+
+                const judulRect = previewJudul.getBoundingClientRect();
+                const subtitleRect = previewSubtitle.getBoundingClientRect();
+
+                const centerX = canvas.width / 2;
+
+                // Title styles
+                const jStyle = getComputedStyle(previewJudul);
+                let jFontSize = parseFloat(jStyle.fontSize);
+                let jFontWeight = jStyle.fontWeight || '800';
+                let jFontStyle = jStyle.fontStyle || 'normal';
+                let jColor = jStyle.color || '#fff';
+                let jLineHeight = parseFloat(jStyle.lineHeight) || (jFontSize * 1.1);
+
+                // Subtitle styles
+                const sStyle = getComputedStyle(previewSubtitle);
+                let sFontSize = parseFloat(sStyle.fontSize);
+                let sFontWeight = sStyle.fontWeight || '500';
+                let sFontStyle = sStyle.fontStyle || 'normal';
+                let sColor = sStyle.color || '#fff';
+                let sLineHeight = parseFloat(sStyle.lineHeight) || (sFontSize * 1.15);
+
+                // convert to canvas px
+                const jFontSizePx = jFontSize * scale;
+                const sFontSizePx = sFontSize * scale;
+                const jLineHeightPx = (jLineHeight) * scale;
+                const sLineHeightPx = (sLineHeight) * scale;
+
+                // shadows
+                ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                ctx.shadowBlur = 10 * (scale/2);
+                ctx.shadowOffsetX = 4 * (scale/2);
+                ctx.shadowOffsetY = 4 * (scale/2);
+
+                // Title drawing
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = jColor;
+                ctx.font = `${jFontStyle} ${jFontWeight} ${jFontSizePx}px Poppins, sans-serif`;
+
+                // get title y relative to phone preview and scale it
+                const titleCenterY = ( (judulRect.top - phoneRect.top) + (judulRect.height/2) ) * scale;
+                const subtitleCenterY = ( (subtitleRect.top - phoneRect.top) + (subtitleRect.height/2) ) * scale;
+
+                drawWrappedText(ctx, previewJudul.textContent, centerX, titleCenterY, canvas.width * 0.8, jLineHeightPx, { underline: textStyles.judul.underline });
+
+                // Subtitle drawing: reduce shadow slightly
+                ctx.shadowBlur = 5 * (scale/2);
+                ctx.shadowOffsetX = 2 * (scale/2);
+                ctx.shadowOffsetY = 2 * (scale/2);
+                ctx.fillStyle = sColor;
+                ctx.font = `${sFontStyle} ${sFontWeight} ${sFontSizePx}px Poppins, sans-serif`;
+
+                drawWrappedText(ctx, previewSubtitle.textContent, centerX, subtitleCenterY, canvas.width * 0.82, sLineHeightPx, { underline: textStyles.subtitle.underline });
+
+                // Voiceover
+                const voiceover = document.getElementById('voiceover').value;
+                if (voiceover) {
+                    const voStyle = getComputedStyle(document.getElementById('voiceoverText'));
+                    const voFontSize = parseFloat(voStyle.fontSize) || 14;
+                    const voFontWeight = voStyle.fontWeight || '400';
+                    const voFontStyle = voStyle.fontStyle || 'normal';
+                    const voColor = voStyle.color || '#fff';
+                    const voX = 20 * scale + (voFontSize * scale);
+                    const voY = (phoneRect.height - 20) * scale - (voFontSize*1.5*scale);
+
+                    ctx.shadowBlur = 0;
+                    ctx.shadowOffsetX = 0;
+                    ctx.shadowOffsetY = 0;
+                    ctx.fillStyle = voColor;
+                    ctx.font = `${voFontStyle} ${voFontWeight} ${voFontSize * scale}px Poppins, sans-serif`;
+                    // small rounded rect as background
+                    const paddingX = 18 * scale;
+                    const paddingY = 10 * scale;
+                    const textMetrics = ctx.measureText(voiceover);
+                    const rectW = textMetrics.width + paddingX*2;
+                    const rectH = (voFontSize*scale) + paddingY*2;
+                    const rectX = 20 * scale;
+                    const rectY = canvas.height - rectH - 20 * scale;
+
+                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                    // rounded rect
+                    roundRect(ctx, rectX, rectY, rectW, rectH, 20*scale);
+                    ctx.fill();
+
+                    ctx.fillStyle = voColor;
+                    ctx.fillText(voiceover, rectX + rectW/2, rectY + rectH/2);
+                }
+
+                // Download
+                canvas.toBlob(function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `INTI-0016-${currentPresetType}-slide-${currentPresetIndex + 1}.png`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                });
+            });
+        }
+
+        function roundRect(ctx, x, y, width, height, radius) {
+            if (typeof radius === 'undefined') {
+                radius = 5;
+            }
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+
+        function copyToClipboard() {
+            const design = {
+                judul: document.getElementById('judul').value,
+                subtitle: document.getElementById('subtitle').value,
+                voiceover: document.getElementById('voiceover').value,
+                judulColor: document.getElementById('judulColor').value,
+                subtitleColor: document.getElementById('subtitleColor').value,
+                judulWeight: document.getElementById('judulWeight').value,
+                subtitleWeight: document.getElementById('subtitleWeight').value,
+                judulSize: document.getElementById('judulSize').value,
+                subtitleSize: document.getElementById('subtitleSize').value,
+                background: document.querySelector('.color-option.active').dataset.bg,
+                styles: textStyles
+            };
+
+            navigator.clipboard.writeText(JSON.stringify(design, null, 2)).then(() => {
+                alert('Design code copied to clipboard!');
+            });
+        }
+    </script>
+</body>
+</html>
