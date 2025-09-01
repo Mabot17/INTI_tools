@@ -490,7 +490,7 @@
 
             <div class="form-group">
                 <label for="title">Judul Post</label>
-                <input type="text" id="title" placeholder="Masukkan judul konten Anda...">
+                <textarea id="title" placeholder="Masukkan judul konten Anda..."></textarea>
                 
                 <!-- Title Font Styling -->
                 <div class="font-style-controls" id="titleStyles">
@@ -769,7 +769,9 @@
         // Real-time preview updates
         document.getElementById('title').addEventListener('input', function() {
             const title = this.value || 'Judul Anda Akan Muncul Di Sini';
-            document.getElementById('previewTitle').textContent = title;
+            
+            // Preserve line breaks untuk preview
+            document.getElementById('previewTitle').innerHTML = title.replace(/\n/g, '<br>');
         });
 
         document.getElementById('content').addEventListener('input', function() {
@@ -897,11 +899,12 @@
                 return fontStr;
             }
             
+            // Modified canvas rendering untuk support multiline title
             // Set up font and styles for title
             ctx.font = getFontString(baseTitleSize, titleStyles, fontFamily);
             ctx.fillStyle = textColor;
             ctx.textAlign = 'center';
-            
+
             // Add shadow for non-light modes
             if (currentPalette !== 'light') {
                 ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
@@ -909,15 +912,26 @@
                 ctx.shadowOffsetX = 2 * scaleFactor;
                 ctx.shadowOffsetY = 2 * scaleFactor;
             }
-            
-            // Calculate title positioning and wrapping
+
+            // Handle multiline title (split by manual line breaks)
+            const titleParts = title.split('\n');
             const maxTitleWidth = width - (basePadding * 2);
-            const titleLines = smartWrapText(ctx, title, maxTitleWidth);
-            
+
+            // Process each line separately
+            let allTitleLines = [];
+            titleParts.forEach(part => {
+                if (part.trim() === '') {
+                    allTitleLines.push(''); // Preserve empty lines
+                } else {
+                    const wrappedLines = smartWrapText(ctx, part.trim(), maxTitleWidth);
+                    allTitleLines = allTitleLines.concat(wrappedLines);
+                }
+            });
+
             let currentY;
             const titleLineHeight = baseTitleSize * (currentTemplate === 'cover' ? 1.3 : 1.2);
-            const titleTotalHeight = titleLines.length * titleLineHeight;
-            
+            const titleTotalHeight = allTitleLines.length * titleLineHeight;
+
             if (currentTemplate === 'cover') {
                 // Calculate total content height for centering
                 const contentLines = content.split('\n');
@@ -929,15 +943,17 @@
             } else {
                 currentY = basePadding + baseTitleSize;
             }
-            
-            // Draw title lines
-            titleLines.forEach((line, index) => {
-                if (titleStyles.underline) {
-                    const lineWidth = ctx.measureText(line).width;
-                    const lineY = currentY + baseTitleSize * 0.1;
-                    ctx.fillRect((width - lineWidth) / 2, lineY, lineWidth, 2 * scaleFactor);
+
+            // Draw title lines (including manual breaks)
+            allTitleLines.forEach((line, index) => {
+                if (line.trim() !== '') { // Skip empty lines for rendering
+                    if (titleStyles.underline) {
+                        const lineWidth = ctx.measureText(line).width;
+                        const lineY = currentY + baseTitleSize * 0.1;
+                        ctx.fillRect((width - lineWidth) / 2, lineY, lineWidth, 2 * scaleFactor);
+                    }
+                    ctx.fillText(line, width / 2, currentY);
                 }
-                ctx.fillText(line, width / 2, currentY);
                 currentY += titleLineHeight;
             });
             
